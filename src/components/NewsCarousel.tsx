@@ -87,16 +87,6 @@ export default function NewsCarousel({ cryptoPrices = FALLBACK_CRYPTO }: NewsCar
         badgeTag: 'Referral Commission'
       },
       {
-        id: `slide-bot-logic-${daySeed}`,
-        type: 'bot_logic',
-        title: '',
-        subtitle: '',
-        source: 'CME Quant Bot Engine',
-        time: '24/7 Active',
-        image: '/morex_slide_bot_logic.svg',
-        badgeTag: 'Bot Trading Logic'
-      },
-      {
         id: `slide-copy-trading-${daySeed}`,
         type: 'copy_trading',
         title: 'Verified Copy Trader Lead Experts',

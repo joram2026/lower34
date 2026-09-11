@@ -785,15 +785,15 @@ export default function AuthPage({ onSuccess, path, navigate }: AuthPageProps) {
 
               <div className="space-y-1">
                 <h1 className="text-2xl sm:text-[26px] font-black tracking-tight text-zinc-900 leading-tight">
-                  {isReset ? 'Recover Access' : isSignUp ? 'Create CME Account' : 'Welcome to CME'}
+                  {isReset ? 'Recover Access' : isSignUp ? 'Create CME Trading Account' : 'Welcome to CME Trading'}
                   <span className="text-[#008B47]">.</span>
                 </h1>
                 <p className="text-xs sm:text-[12.5px] font-medium text-zinc-600 max-w-[320px] mx-auto leading-relaxed">
                   {isReset 
                     ? 'Enter your registered email and a new password to restore wallet access.' 
                     : isSignUp 
-                      ? 'Create your CME wallet with instant email verification and smart copy trading.' 
-                      : 'Access your CME trading desk, portfolio balance, and daily arbitrage earnings.'
+                      ? 'Create your CME Trading account with instant email verification and smart copy trading.' 
+                      : 'Access your CME Trading desk, portfolio balance, and copy trading earnings.'
                   }
                 </p>
               </div>
@@ -936,7 +936,7 @@ export default function AuthPage({ onSuccess, path, navigate }: AuthPageProps) {
                       {loading ? (
                         <>
                           <RefreshCw size={14} className="animate-spin" />
-                          <span>Verifying & Creating CME Account...</span>
+                          <span>Verifying & Creating CME Trading Account...</span>
                         </>
                       ) : (
                         <>

@@ -6,7 +6,7 @@ import {
   collection, doc, getDocs, updateDoc, deleteDoc, runTransaction, 
   setDoc, query, orderBy, serverTimestamp, writeBatch, getDoc 
 } from 'firebase/firestore';
-import { UserAccount, Transaction, CryptoNetwork, P2PMerchant, CryptoPrice, ArbitrageConfig, BotTemplate, DepositBonusTier, ReferralDepositConfig, CopyTraderLead, PromoCode, PromoCodeRewardType, InAppAd } from '../types';
+import { UserAccount, Transaction, CryptoNetwork, P2PMerchant, CryptoPrice, ArbitrageConfig, DepositBonusTier, ReferralDepositConfig, CopyTraderLead, PromoCode, PromoCodeRewardType, InAppAd } from '../types';
 import { DEFAULT_COPY_LEADS, getLeadDailyProfitRange } from '../data/copyTraders';
 import { DEFAULT_IN_APP_ADS } from '../data/defaultAds';
 import { DEFAULT_NETWORKS } from '../seedData';
@@ -78,7 +78,7 @@ interface AdminPanelProps {
 }
 
 export default function AdminPanel({ onLogout }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'users' | 'deposits' | 'withdrawals' | 'settings' | 'bot-templates' | 'ads'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'deposits' | 'withdrawals' | 'settings' | 'ads'>('users');
   
   // Data States
   const [usersList, setUsersList] = useState<UserAccount[]>([]);
@@ -88,22 +88,8 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
   const [cryptoPricesList, setCryptoPricesList] = useState<CryptoPrice[]>([]);
   const [investmentsList, setInvestmentsList] = useState<any[]>([]);
   const [userBotsList, setUserBotsList] = useState<any[]>([]);
-  const [botTemplatesList, setBotTemplatesList] = useState<BotTemplate[]>([]);
   const [adsList, setAdsList] = useState<InAppAd[]>([]);
   const [isSavingAd, setIsSavingAd] = useState(false);
-  const [editingBotTemplate, setEditingBotTemplate] = useState<BotTemplate | null>(null);
-  const [isAddingBotTemplate, setIsAddingBotTemplate] = useState(false);
-  const [botTemplateForm, setBotTemplateForm] = useState({
-    name: '',
-    category: 'Cross-Exchange Arbitrage',
-    winRatioRange: '95%',
-    winProfitRange: '1.5% - 2.5%',
-    lossPercentRange: '0.4% - 1.4%',
-    minCapital: '50',
-    tradingPairs: 'XAUUSD, BTCUSD, EURUSD',
-    riskLevel: 'Low Risk',
-    color: 'from-amber-500 to-yellow-500'
-  });
   const pricesListRef = useRef<CryptoPrice[]>([]);
 
   // Arbitrage Config States
@@ -457,58 +443,6 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
         await setDoc(refDepDocRef, defaultRefDep);
         setReferralConfig(defaultRefDep);
       }
-
-      // Fetch Bot Templates
-      const botTplSnap = await getDocs(collection(db, 'bot_templates'));
-      let bTpls = botTplSnap.docs.map(d => ({ ...d.data(), id: d.id } as BotTemplate));
-      if (bTpls.length === 0) {
-        const defaultBts = [
-          {
-            id: 'arb_sniper',
-            name: 'Arbitrage Flash-Loan Sniper',
-            category: 'PREMIUM',
-            winRatioRange: '95%',
-            winProfitRange: '1.5% - 2.5%',
-            lossPercentRange: '0.4% - 1.4%',
-            minCapital: 50,
-            tradingPairs: ['XAUUSD', 'BTCUSD', 'EURUSD'],
-            riskLevel: 'Low Risk',
-            color: 'from-amber-500 to-yellow-500'
-          },
-          {
-            id: 'grid_scalper',
-            name: 'AI Grid Scalper Pro',
-            category: 'PREMIUM',
-            winRatioRange: '90%',
-            winProfitRange: '1.2% - 2.0%',
-            lossPercentRange: '0.5% - 1.2%',
-            minCapital: 100,
-            tradingPairs: ['XAUUSD', 'BTCUSD', 'EURUSD'],
-            riskLevel: 'Medium Risk',
-            color: 'from-emerald-500 to-teal-500'
-          },
-          {
-            id: 'dca_accumulator',
-            name: 'DCA Smart Accumulator',
-            category: 'FREE',
-            winRatioRange: '98%',
-            winProfitRange: '1.0% - 1.8%',
-            lossPercentRange: '0.3% - 0.8%',
-            minCapital: 25,
-            tradingPairs: ['XAUUSD', 'BTCUSD', 'EURUSD'],
-            riskLevel: 'Very Low Risk',
-            color: 'from-blue-500 to-indigo-500'
-          }
-        ];
-        const batch = writeBatch(db);
-        defaultBts.forEach(bt => {
-          batch.set(doc(db, 'bot_templates', bt.id), bt);
-        });
-        await batch.commit();
-        bTpls = defaultBts;
-      }
-      bTpls.sort((a, b) => Number(a.minCapital ?? 0) - Number(b.minCapital ?? 0));
-      setBotTemplatesList(bTpls);
 
       // Fetch User Trading Bots
       const botsSnap = await getDocs(collection(db, 'user_bots'));
@@ -1559,26 +1493,6 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
     });
   };
 
-  const handleDeleteBotTemplate = (id: string) => {
-    setConfirmModal({
-      isOpen: true,
-      title: 'Delete Bot Template?',
-      message: 'Are you sure you want to delete this bot template from the marketplace?',
-      danger: true,
-      onConfirm: async () => {
-        setConfirmModal(prev => ({ ...prev, isOpen: false }));
-        try {
-          await deleteDoc(doc(db, 'bot_templates', id));
-          showFeedback('success', 'Bot template removed successfully.');
-          await loadAllData(true);
-        } catch (err: any) {
-          console.error(err);
-          showFeedback('error', 'Failed to delete bot template: ' + err.message);
-        }
-      }
-    });
-  };
-
   // 6. Crypto Live Price Management
   const handleSaveCryptoPrice = async (symbol: string, name: string) => {
     const priceVal = parseFloat(priceForm.price);
@@ -2121,12 +2035,11 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
       </div>
 
       {/* Main Tabs Selection */}
-      <div className="grid grid-cols-6 max-w-2xl mx-auto bg-slate-800 border-b border-slate-700 p-1 rounded-xl my-4 mx-4">
+      <div className="grid grid-cols-5 max-w-2xl mx-auto bg-slate-800 border-b border-slate-700 p-1 rounded-xl my-4 mx-4">
         {([
           { id: 'users', label: 'Users', icon: Users },
           { id: 'deposits', label: 'Deposits', icon: CheckCircle2 },
           { id: 'withdrawals', label: 'Withdraw', icon: XCircle },
-          { id: 'bot-templates', label: 'Bots', icon: Bot },
           { id: 'ads', label: 'In-App Ads', icon: Megaphone },
           { id: 'settings', label: 'System', icon: Settings }
         ] as const).map(tab => {
@@ -3079,335 +2992,6 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
                     </div>
                   ))
                 )}
-              </div>
-            </div>
-          )}
-
-          {/* Bot Templates Management Tab */}
-          {activeTab === 'bot-templates' && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center bg-zinc-900 border border-zinc-800 rounded-3xl p-5">
-                <div>
-                  <h3 className="text-sm font-black text-zinc-100 flex items-center gap-2">
-                    <Bot className="text-emerald-400" size={18} />
-                    Trading Bot Templates Marketplace Configuration
-                  </h3>
-                  <p className="text-xs text-zinc-400 mt-1">Configure bot performance ranges, minimum capital, ROI, and supported trading pairs available for users on the BOTS Hub.</p>
-                </div>
-                <button
-                  type="button"
-                  id="add-new-bot-template-btn"
-                  onClick={() => {
-                    setEditingBotTemplate(null);
-                    setIsAddingBotTemplate(true);
-                    setBotTemplateForm({
-                      name: '',
-                      category: 'PREMIUM',
-                      winRatioRange: '95%',
-                      winProfitRange: '1.5% - 2.5%',
-                      lossPercentRange: '0.4% - 1.4%',
-                      minCapital: '50',
-                      tradingPairs: 'BTC/USDT, ETH/USDT, SOL/USDT',
-                      riskLevel: 'Low Risk',
-                      color: 'from-amber-500 to-yellow-500'
-                    });
-                  }}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md"
-                >
-                  <Plus size={14} />
-                  <span>New Bot Template</span>
-                </button>
-              </div>
-
-              {/* Edit / Create Form */}
-              {(isAddingBotTemplate || editingBotTemplate !== null) && (
-                <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 space-y-4 animate-fade-in">
-                  <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
-                    <h4 className="text-xs font-black text-zinc-200 uppercase tracking-wider">
-                      {editingBotTemplate ? 'Edit Bot Template' : 'Create New Bot Template'}
-                    </h4>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingBotTemplate(null);
-                        setIsAddingBotTemplate(false);
-                        setBotTemplateForm({
-                          name: '',
-                          category: 'PREMIUM',
-                          winRatioRange: '95%',
-                          winProfitRange: '1.5% - 2.5%',
-                          lossPercentRange: '0.4% - 1.4%',
-                          minCapital: '50',
-                          tradingPairs: 'BTC/USDT, ETH/USDT, SOL/USDT',
-                          riskLevel: 'Low Risk',
-                          color: 'from-amber-500 to-yellow-500'
-                        });
-                      }}
-                      className="text-zinc-400 hover:text-white cursor-pointer"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-
-                  <form onSubmit={async (e) => {
-                    e.preventDefault();
-                    try {
-                      const id = editingBotTemplate ? editingBotTemplate.id : `bot_${Date.now()}`;
-                      const pairsArr = botTemplateForm.tradingPairs.split(',').map(p => p.trim()).filter(Boolean);
-                      const formattedWinRatio = botTemplateForm.winRatioRange.trim() 
-                        ? (botTemplateForm.winRatioRange.trim().endsWith('%') 
-                            ? botTemplateForm.winRatioRange.trim() 
-                            : `${botTemplateForm.winRatioRange.trim()}%`)
-                        : '75%';
-
-                      const data: BotTemplate = {
-                        id,
-                        name: botTemplateForm.name,
-                        category: botTemplateForm.category,
-                        winRatioRange: formattedWinRatio,
-                        winProfitRange: botTemplateForm.winProfitRange.trim() || '1.5% - 2.5%',
-                        lossPercentRange: botTemplateForm.lossPercentRange.trim() || '0.4% - 1.4%',
-                        minCapital: parseFloat(botTemplateForm.minCapital) || 50,
-                        tradingPairs: pairsArr.length > 0 ? pairsArr : ['BTC/USDT', 'ETH/USDT'],
-                        riskLevel: botTemplateForm.riskLevel,
-                        color: botTemplateForm.color || 'from-amber-500 to-yellow-500'
-                      };
-                      await setDoc(doc(db, 'bot_templates', id), data);
-                      showFeedback('success', editingBotTemplate ? 'Bot template updated!' : 'Bot template created!');
-                      setEditingBotTemplate(null);
-                      setIsAddingBotTemplate(false);
-                      setBotTemplateForm({
-                        name: '',
-                        category: 'PREMIUM',
-                        winRatioRange: '95%',
-                        winProfitRange: '1.5% - 2.5%',
-                        lossPercentRange: '0.4% - 1.4%',
-                        minCapital: '50',
-                        tradingPairs: 'BTC/USDT, ETH/USDT, SOL/USDT',
-                        riskLevel: 'Low Risk',
-                        color: 'from-amber-500 to-yellow-500'
-                      });
-                      loadAllData(true);
-                    } catch (err: any) {
-                      showFeedback('error', err.message || 'Failed to save bot template');
-                    }
-                  }} className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-[10px] uppercase font-bold text-zinc-400 mb-1 block">Bot Name</label>
-                        <input
-                          type="text"
-                          required
-                          value={botTemplateForm.name}
-                          onChange={e => setBotTemplateForm(prev => ({ ...prev, name: e.target.value }))}
-                          placeholder="e.g. Arbitrage Flash-Loan Sniper"
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase font-bold text-zinc-400 mb-1 block">Category</label>
-                        <select
-                          value={botTemplateForm.category}
-                          onChange={e => setBotTemplateForm(prev => ({ ...prev, category: e.target.value }))}
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 font-bold"
-                        >
-                          <option value="PREMIUM">PREMIUM</option>
-                          <option value="FREE">FREE</option>
-                          <option value="Cross-Exchange Arbitrage">Cross-Exchange Arbitrage</option>
-                          <option value="AI High Frequency">AI High Frequency</option>
-                          <option value="Flash Loan Arbitrage">Flash Loan Arbitrage</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-[10px] uppercase font-bold text-emerald-400 mb-1 block">Win Trade Profit Range (%)</label>
-                        <input
-                          type="text"
-                          required
-                          value={botTemplateForm.winProfitRange}
-                          onChange={e => setBotTemplateForm(prev => ({ ...prev, winProfitRange: e.target.value }))}
-                          placeholder="e.g. 1.5% - 2.5%"
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                        />
-                        <span className="text-[9px] text-zinc-500 mt-1 block font-medium">
-                          Profit % range earned on a winning trade
-                        </span>
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase font-bold text-rose-400 mb-1 block">Loss Trade Loss Range (%)</label>
-                        <input
-                          type="text"
-                          required
-                          value={botTemplateForm.lossPercentRange}
-                          onChange={e => setBotTemplateForm(prev => ({ ...prev, lossPercentRange: e.target.value }))}
-                          placeholder="e.g. 0.4% - 1.4%"
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
-                        />
-                        <span className="text-[9px] text-zinc-500 mt-1 block font-medium">
-                          Loss % range incurred on a losing trade
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div>
-                        <label className="text-[10px] uppercase font-bold text-zinc-400 mb-1 block">Win Ratio (%)</label>
-                        <input
-                          type="text"
-                          required
-                          value={botTemplateForm.winRatioRange}
-                          onChange={e => setBotTemplateForm(prev => ({ ...prev, winRatioRange: e.target.value }))}
-                          placeholder="e.g. 60%"
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                        />
-                        <span className="text-[9px] text-zinc-500 mt-1 block font-medium">
-                          e.g. 60% = 60% Win / 40% Loss probability
-                        </span>
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase font-bold text-zinc-400 mb-1 block">Min Capital ($)</label>
-                        <input
-                          type="number"
-                          required
-                          value={botTemplateForm.minCapital}
-                          onChange={e => setBotTemplateForm(prev => ({ ...prev, minCapital: e.target.value }))}
-                          placeholder="50"
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase font-bold text-zinc-400 mb-1 block">Risk Level</label>
-                        <select
-                          value={botTemplateForm.riskLevel}
-                          onChange={e => setBotTemplateForm(prev => ({ ...prev, riskLevel: e.target.value }))}
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                        >
-                          <option value="Very Low Risk">Very Low Risk</option>
-                          <option value="Low Risk">Low Risk</option>
-                          <option value="Medium Risk">Medium Risk</option>
-                          <option value="High Risk">High Risk</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] uppercase font-bold text-zinc-400 mb-1 block">Trading Pairs (Comma Separated)</label>
-                      <input
-                        type="text"
-                        required
-                        value={botTemplateForm.tradingPairs}
-                        onChange={e => setBotTemplateForm(prev => ({ ...prev, tradingPairs: e.target.value }))}
-                        placeholder="BTC/USDT, ETH/USDT, SOL/USDT"
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                      />
-                    </div>
-
-                    <div className="flex justify-end gap-2 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingBotTemplate(null);
-                          setIsAddingBotTemplate(false);
-                        }}
-                        className="px-4 py-2 bg-zinc-800 text-zinc-300 rounded-xl text-xs font-bold hover:bg-zinc-700 cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold cursor-pointer"
-                      >
-                        Save Bot Template
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
-
-              {/* Bot Templates List */}
-              <div className="grid gap-4 sm:grid-cols-2">
-                {[...botTemplatesList]
-                  .sort((a, b) => Number(a.minCapital ?? 0) - Number(b.minCapital ?? 0))
-                  .map(tpl => (
-                  <div key={tpl.id} className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-400">{tpl.category}</span>
-                        <h4 className="text-sm font-black text-white mt-0.5">{tpl.name}</h4>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingBotTemplate(tpl);
-                            setIsAddingBotTemplate(false);
-                            setBotTemplateForm({
-                              name: tpl.name,
-                              category: tpl.category || 'PREMIUM',
-                              winRatioRange: tpl.winRatioRange || '95%',
-                              winProfitRange: tpl.winProfitRange || '1.5% - 2.5%',
-                              lossPercentRange: tpl.lossPercentRange || '0.4% - 1.4%',
-                              minCapital: (tpl.minCapital ?? 50).toString(),
-                              tradingPairs: (tpl.tradingPairs || []).join(', '),
-                              riskLevel: tpl.riskLevel || 'Low Risk',
-                              color: tpl.color || 'from-amber-500 to-yellow-500'
-                            });
-                          }}
-                          className="p-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl"
-                          title="Edit Template"
-                        >
-                          <Edit size={13} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteBotTemplate(tpl.id)}
-                          className="p-1.5 bg-red-950/40 hover:bg-red-950 text-red-400 rounded-xl"
-                          title="Delete Template"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-800 text-center">
-                      <div className="bg-zinc-950 p-2 rounded-xl">
-                        <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block">Win / Loss Ratio</span>
-                        <span className="text-xs font-black text-emerald-400 font-mono">
-                          {tpl.winRatioRange} Win
-                          {(() => {
-                            const val = parseFloat((tpl.winRatioRange || '').replace(/%/g, ''));
-                            if (!isNaN(val) && val <= 100) {
-                              return <span className="text-rose-400 text-[10px] ml-1 block sm:inline">({(100 - val).toFixed(0)}% L)</span>;
-                            }
-                            return null;
-                          })()}
-                        </span>
-                      </div>
-                      <div className="bg-zinc-950 p-2 rounded-xl">
-                        <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block">Profit / Loss %</span>
-                        <span className="text-xs font-black font-mono block">
-                          <span className="text-emerald-400">{tpl.winProfitRange || '1.5-2.5%'}</span>
-                          <span className="text-zinc-600 mx-0.5">/</span>
-                          <span className="text-rose-400">-{tpl.lossPercentRange || '0.4-1.4%'}</span>
-                        </span>
-                      </div>
-                      <div className="bg-zinc-950 p-2 rounded-xl">
-                        <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block">Min Capital</span>
-                        <span className="text-xs font-black text-white font-mono">${tpl.minCapital}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1 pt-1">
-                      {(tpl.tradingPairs || []).map(pair => (
-                        <span key={pair} className="text-[10px] bg-zinc-950 border border-zinc-800 px-2 py-0.5 rounded-full font-mono text-zinc-300">
-                          {pair}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
               </div>
             </div>
           )}

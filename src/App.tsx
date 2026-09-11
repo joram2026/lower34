@@ -159,7 +159,6 @@ export default function App() {
       const validPaths = [
         '/dashboard',
         '/wallet',
-        '/trade',
         '/earn',
         '/history',
         '/profile',
@@ -237,7 +236,7 @@ export default function App() {
   };
 
   // 3. Standard User Account Flows
-  const showDashboard = ['/dashboard', '/wallet', '/trade', '/earn', '/history'].includes(path);
+  const showDashboard = ['/dashboard', '/wallet', '/earn', '/history'].includes(path);
 
   return (
     <div id="standard-user-app" className="bg-[#EBF9F0] min-h-screen">

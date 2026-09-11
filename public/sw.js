@@ -1,10 +1,14 @@
 // Service Worker for CME PWA
-const CACHE_NAME = 'cme-v3';
+const CACHE_NAME = 'cme-v4';
 const ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icon.svg'
+  '/icon.svg',
+  '/pwa-192x192.png',
+  '/pwa-512x512.png',
+  '/pwa-maskable-512x512.png',
+  '/apple-touch-icon.png'
 ];
 
 // Install Event

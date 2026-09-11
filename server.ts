@@ -133,46 +133,46 @@ async function startServer() {
         verified: false,
       });
 
-      console.log(`[Morex Security] 6-digit OTP code for ${cleanEmail}: ${otpCode}`);
+      console.log(`[CME Trading Security] 6-digit OTP code for ${cleanEmail}: ${otpCode}`);
 
       // Attempt to send real email via configured SMTP
       const transporter = getMailTransporter();
       if (transporter) {
-        const fromAddress = process.env.SMTP_FROM || `\"Morex Holdings Security\" <${process.env.SMTP_USER}>`;
+        const fromAddress = process.env.SMTP_FROM || `"CME Trading Security" <${process.env.SMTP_USER}>`;
         const greetingName = displayName ? displayName.trim() : "Valued Trader";
 
         const htmlTemplate = `
-          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 540px; margin: 0 auto; padding: 32px 20px; background-color: #fcfbf7; border: 1px solid #f0ede4; border-radius: 20px; color: #1c1917;">
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 540px; margin: 0 auto; padding: 32px 20px; background-color: #EBF9F0; border: 1px solid #c7eed6; border-radius: 20px; color: #004D27;">
             <div style="text-align: center; margin-bottom: 24px;">
-              <div style="display: inline-block; background: linear-gradient(135deg, #f59e0b, #d97706); padding: 12px 20px; border-radius: 14px; color: #ffffff; font-weight: 900; font-size: 18px; letter-spacing: 0.5px; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25);">
-                MOREX HOLDINGS
+              <div style="display: inline-block; background: linear-gradient(135deg, #008B47, #00A653); padding: 12px 24px; border-radius: 14px; color: #ffffff; font-weight: 900; font-size: 18px; letter-spacing: 0.8px; border: 1.5px solid #F4E100; box-shadow: 0 4px 14px rgba(0, 139, 71, 0.25);">
+                CME TRADING
               </div>
-              <p style="color: #78716c; font-size: 12px; margin-top: 8px; font-weight: 500;">Secure Arbitrage & Yield Ecosystem</p>
+              <p style="color: #007038; font-size: 12px; margin-top: 8px; font-weight: 600;">Institutional Digital Trading & Copy Trading Gateway</p>
             </div>
 
-            <div style="background-color: #ffffff; border: 1px solid #e7e5e4; border-radius: 16px; padding: 28px 24px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);">
-              <h2 style="font-size: 20px; font-weight: 800; color: #0c0a09; margin-top: 0; margin-bottom: 12px;">Verify your email address</h2>
-              <p style="font-size: 14px; line-height: 1.6; color: #44403c; margin-bottom: 24px;">
+            <div style="background-color: #ffffff; border: 1px solid #ccebd7; border-radius: 16px; padding: 28px 24px; box-shadow: 0 2px 10px rgba(0, 77, 39, 0.05);">
+              <h2 style="font-size: 20px; font-weight: 800; color: #004D27; margin-top: 0; margin-bottom: 12px;">Verify your email address</h2>
+              <p style="font-size: 14px; line-height: 1.6; color: #1f2937; margin-bottom: 24px;">
                 Hello <strong>${greetingName}</strong>,<br>
-                Thank you for joining Morex Holdings. To complete your registration and protect your account, please enter the one-time verification passcode below:
+                Thank you for joining CME Trading. To complete your registration and protect your account, please enter the one-time verification passcode below:
               </p>
 
-              <div style="text-align: center; margin: 28px 0; background: #fffbeb; border: 2px dashed #f59e0b; border-radius: 14px; padding: 18px;">
-                <span style="font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-size: 34px; font-weight: 900; letter-spacing: 8px; color: #b45309; display: block;">
+              <div style="text-align: center; margin: 28px 0; background: #EBF9F0; border: 2px dashed #008B47; border-radius: 14px; padding: 18px;">
+                <span style="font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #007038; display: block;">
                   ${otpCode}
                 </span>
-                <span style="font-size: 11px; color: #a16207; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-top: 6px; display: block;">
+                <span style="font-size: 11px; color: #008B47; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 6px; display: block;">
                   Valid for 10 minutes • Do not share
                 </span>
               </div>
 
-              <p style="font-size: 12px; line-height: 1.5; color: #78716c; margin-bottom: 0;">
+              <p style="font-size: 12px; line-height: 1.5; color: #4b5563; margin-bottom: 0;">
                 If you did not request this verification code, please ignore this email. No account will be created without this passcode.
               </p>
             </div>
 
-            <div style="text-align: center; margin-top: 24px; font-size: 11px; color: #a8a29e;">
-              © ${new Date().getFullYear()} Morex Holdings Ltd. All rights reserved. Automated security notification.
+            <div style="text-align: center; margin-top: 24px; font-size: 11px; color: #007038;">
+              © ${new Date().getFullYear()} CME Trading. All rights reserved. Automated security notification.
             </div>
           </div>
         `;
@@ -181,8 +181,8 @@ async function startServer() {
           await transporter.sendMail({
             from: fromAddress,
             to: cleanEmail,
-            subject: `${otpCode} is your Morex Holdings verification code`,
-            text: `Your Morex Holdings verification code is ${otpCode}. Valid for 10 minutes.`,
+            subject: `${otpCode} is your CME Trading verification code`,
+            text: `Your CME Trading verification code is ${otpCode}. Valid for 10 minutes.`,
             html: htmlTemplate,
           });
 

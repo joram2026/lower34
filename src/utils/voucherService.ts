@@ -66,8 +66,8 @@ export async function seedDefaultPromoCodesIfEmpty(): Promise<void> {
         },
         {
           code: 'TRADEBOOST25',
-          title: '$25 Copy & Bot Trading Capital',
-          description: 'Instant $25 trading capital credited to your Copy Trading and Bot balance.',
+          title: '$25 Copy Trading Capital',
+          description: 'Instant $25 trading capital credited to your Copy Trading balance.',
           type: 'TRADE_CAPITAL',
           rewardValue: 25,
           minDepositRequirement: 0,
@@ -199,7 +199,7 @@ export async function redeemPromoCode(
       const amount = Number(promo.rewardValue) || 0;
       newTradeBalance = (user.tradeBalance || 0) + amount;
       userUpdates.tradeBalance = increment(amount);
-      rewardText = `$${amount.toFixed(2)} USD added to Copy & Bot Trade Balance`;
+      rewardText = `$${amount.toFixed(2)} USD added to Copy Trade Balance`;
 
       // Log transaction record
       const txCol = collection(db, 'transactions');

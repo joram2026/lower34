@@ -10,14 +10,14 @@ if (fs.existsSync(swPath)) {
   const uniqueId = Date.now();
   swContent = swContent.replace(
     /const CACHE_NAME = '[^']+'/,
-    `const CACHE_NAME = 'arbitrage-${uniqueId}'`
+    `const CACHE_NAME = 'cme-${uniqueId}'`
   );
   
   // Add a unique build timestamp at the top of the file to guarantee byte-for-byte difference
   swContent = `// Build Timestamp: ${new Date().toISOString()}\n` + swContent;
   
   fs.writeFileSync(swPath, swContent, 'utf8');
-  console.log(`[PWA Build] Successfully injected unique cache identifier (arbitrage-${uniqueId}) into sw.js`);
+  console.log(`[PWA Build] Successfully injected unique cache identifier (cme-${uniqueId}) into sw.js`);
 } else {
   console.warn('[PWA Build] Warning: dist/sw.js not found!');
 }

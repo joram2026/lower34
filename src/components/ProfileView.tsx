@@ -12,6 +12,7 @@ import {
   Search, MoreVertical, Info, ShieldCheck, X, Zap, Tag, Wallet
 } from 'lucide-react';
 import VouchersView from './VouchersView';
+import { getAppBaseUrl } from '../config/domain';
 
 interface ProfileViewProps {
   user: any;
@@ -211,7 +212,7 @@ export default function ProfileView({ user, onBack }: ProfileViewProps) {
 
   const handleCopyReferral = () => {
     const code = (profile as any)?.uniqueCode || '';
-    const referralLink = `${window.location.origin}/#/signup?ref=${code}`;
+    const referralLink = `${getAppBaseUrl()}/#/signup?ref=${code}`;
     
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(referralLink)
@@ -1300,7 +1301,7 @@ export default function ProfileView({ user, onBack }: ProfileViewProps) {
                 </label>
                 <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center bg-zinc-50 border border-zinc-200 p-2 sm:p-2.5 rounded-xl font-mono text-xs">
                   <span className="text-zinc-700 font-medium select-all truncate flex-1 px-1 py-1 sm:py-0 text-[11px] sm:text-xs">
-                    {window.location.origin}/#/signup?ref={(profile as any)?.uniqueCode || ''}
+                    {getAppBaseUrl()}/#/signup?ref={(profile as any)?.uniqueCode || ''}
                   </span>
                   <button
                     type="button"
