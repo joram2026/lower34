@@ -1,0 +1,108 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+
+  /* Sprite Lemon-Lime Brand Palette */
+  --color-sprite-green: #008B47;
+  --color-sprite-green-dark: #007038;
+  --color-sprite-green-light: #00A653;
+  --color-sprite-lime: #F4E100;
+  --color-sprite-lime-dark: #D4C200;
+  --color-sprite-bg: #EBF9F0;
+  --color-sprite-mint: #E6F7ED;
+
+  /* Map Amber to Sprite Palette so all UI components automatically transform */
+  --color-amber-50: #f0fdf4;
+  --color-amber-100: #dcfce7;
+  --color-amber-200: #bbf7d0;
+  --color-amber-300: #86efac;
+  --color-amber-400: #F4E100;
+  --color-amber-500: #008B47;
+  --color-amber-600: #00763C;
+  --color-amber-700: #006030;
+  --color-amber-800: #004D27;
+  --color-amber-900: #003B1E;
+  --color-amber-950: #002613;
+
+  --color-slate-950: #040712;
+  --color-slate-900: #080c1d;
+  --color-slate-850: #0f152b;
+  --color-slate-800: #131a34;
+  --color-slate-750: #1a2343;
+  --color-slate-700: #202b52;
+  --color-slate-600: #2d3b6f;
+
+  --color-emerald-400: #34d399;
+  --color-emerald-500: #008B47;
+  --color-emerald-600: #00763C;
+  --color-emerald-700: #006030;
+
+  --color-teal-400: #2dd4bf;
+  --color-teal-500: #14b8a6;
+  --color-teal-600: #0d9488;
+}
+
+/* Crisp, refreshing Sprite Lemon-Lime theme enhancements */
+body {
+  font-family: var(--font-sans);
+  background-color: #EBF9F0;
+  background-image: 
+    radial-gradient(circle at 15% 15%, rgba(0, 139, 71, 0.07) 0%, transparent 40%),
+    radial-gradient(circle at 85% 85%, rgba(244, 225, 0, 0.08) 0%, transparent 45%);
+  background-attachment: fixed;
+}
+
+/* Micro scrollbars for a premium, compact interface */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: #EBF9F0;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #008B47;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00763C;
+}
+
+/* Soft transition resets */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Premium micro-animations for PWA loading & splash screens */
+@keyframes logoScalePulse {
+  0%, 100% {
+    transform: scale(1) translateY(0);
+    box-shadow: 0 15px 30px -10px rgba(245, 158, 11, 0.15);
+  }
+  50% {
+    transform: scale(1.06) translateY(-6px);
+    box-shadow: 0 25px 45px -12px rgba(245, 158, 11, 0.35);
+  }
+}
+
+@keyframes textFadeBlink {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+.animate-logo-pulse {
+  animation: logoScalePulse 2s ease-in-out infinite;
+}
+
+.animate-text-blink {
+  animation: textFadeBlink 1.5s ease-in-out infinite;
+}

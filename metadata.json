@@ -1,0 +1,8 @@
+{
+  "name": "CME",
+  "description": "CME cryptocurrency trading, peer-to-peer (P2P) escrows, automated bot trading, and high-yield financial portfolios.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

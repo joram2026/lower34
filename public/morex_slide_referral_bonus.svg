@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400">
+  <defs>
+    <linearGradient id="bgGradRef" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16" />
+      <stop offset="50%" stop-color="#190e2b" />
+      <stop offset="100%" stop-color="#090d16" />
+    </linearGradient>
+
+    <linearGradient id="goldRef" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="50%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+
+    <filter id="glowRef" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="400" fill="url(#bgGradRef)" />
+
+  <!-- Left Side: Brand Logo Badge (Safe margin x=140) -->
+  <g transform="translate(140, 30)">
+    <rect x="0" y="0" width="180" height="56" rx="12" fill="#0f172a" stroke="#c084fc" stroke-width="1.5" opacity="0.95" />
+    
+    <g transform="translate(10, 8)">
+      <rect width="40" height="40" rx="8" fill="#1e293b" />
+      <path d="M 10 30 L 10 12 L 20 24 L 30 12 L 30 30" fill="none" stroke="url(#goldRef)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+
+    <text x="58" y="30" font-family="sans-serif" font-weight="900" font-size="18" fill="#ffffff" letter-spacing="1.5">CME</text>
+    <text x="58" y="44" font-family="sans-serif" font-weight="700" font-size="8" fill="#c084fc" letter-spacing="1">PARTNER PROGRAM</text>
+  </g>
+
+  <!-- Header Title (Safe margin x=500 to 1060) -->
+  <g transform="translate(500, 30)">
+    <text x="0" y="32" font-family="sans-serif" font-weight="900" font-size="28" fill="#ffffff">PARTNER REFERRAL COMMISSIONS</text>
+    <rect x="0" y="44" width="310" height="22" rx="11" fill="#1e1b4b" stroke="#c084fc" stroke-width="1" />
+    <text x="12" y="59" font-family="sans-serif" font-weight="700" font-size="10" fill="#e9d5ff">Earn Cash Rewards Every Time Your Referee Deposits</text>
+  </g>
+
+  <!-- 3 Referral Cards (x=140 to 1040) -->
+  <g transform="translate(140, 115)">
+    <!-- Level 1 -->
+    <g transform="translate(0, 0)">
+      <rect width="280" height="230" rx="20" fill="#0f172a" stroke="#334155" stroke-width="1.5" />
+      <rect x="20" y="20" width="240" height="28" rx="8" fill="#1e293b" />
+      <text x="140" y="38" font-family="sans-serif" font-weight="800" font-size="11" fill="#94a3b8" text-anchor="middle">REF DEP $10 – $99</text>
+      
+      <text x="140" y="110" font-family="sans-serif" font-weight="900" font-size="42" fill="#c084fc" text-anchor="middle">+5%</text>
+      <text x="140" y="135" font-family="sans-serif" font-weight="800" font-size="12" fill="#ffffff" text-anchor="middle">DIRECT CASH REWARD</text>
+      
+      <rect x="40" y="165" width="200" height="36" rx="10" fill="#1e293b" stroke="#c084fc" stroke-width="1" />
+      <text x="140" y="188" font-family="sans-serif" font-weight="800" font-size="11" fill="#c084fc" text-anchor="middle">BRONZE PARTNER</text>
+    </g>
+
+    <!-- Level 2 (Popular) -->
+    <g transform="translate(310, 0)">
+      <rect width="280" height="230" rx="20" fill="#1e1808" stroke="#f59e0b" stroke-width="2.5" filter="url(#glowRef)" />
+      <rect x="20" y="20" width="240" height="28" rx="8" fill="#f59e0b" opacity="0.25" />
+      <text x="140" y="38" font-family="sans-serif" font-weight="900" font-size="11" fill="#fde047" text-anchor="middle">REF DEP $100 – $499 ★ SILVER</text>
+      
+      <text x="140" y="110" font-family="sans-serif" font-weight="900" font-size="44" fill="url(#goldRef)" text-anchor="middle">+8%</text>
+      <text x="140" y="135" font-family="sans-serif" font-weight="800" font-size="12" fill="#ffffff" text-anchor="middle">DIRECT CASH REWARD</text>
+      
+      <rect x="40" y="165" width="200" height="36" rx="10" fill="url(#goldRef)" />
+      <text x="140" y="188" font-family="sans-serif" font-weight="900" font-size="11" fill="#0f172a" text-anchor="middle">SILVER PARTNER</text>
+    </g>
+
+    <!-- Level 3 (VIP) -->
+    <g transform="translate(620, 0)">
+      <rect width="280" height="230" rx="20" fill="#2e1065" stroke="#a855f7" stroke-width="2" />
+      <rect x="20" y="20" width="240" height="28" rx="8" fill="#a855f7" opacity="0.2" />
+      <text x="140" y="38" font-family="sans-serif" font-weight="900" font-size="11" fill="#e9d5ff" text-anchor="middle">REF DEP $500+ ★ GOLD VIP</text>
+      
+      <text x="140" y="110" font-family="sans-serif" font-weight="900" font-size="44" fill="#e9d5ff" text-anchor="middle">+12%</text>
+      <text x="140" y="135" font-family="sans-serif" font-weight="800" font-size="12" fill="#ffffff" text-anchor="middle">DIRECT CASH REWARD</text>
+      
+      <rect x="40" y="165" width="200" height="36" rx="10" fill="#581c87" stroke="#e9d5ff" stroke-width="1" />
+      <text x="140" y="188" font-family="sans-serif" font-weight="800" font-size="11" fill="#e9d5ff" text-anchor="middle">GOLD VIP PARTNER</text>
+    </g>
+  </g>
+</svg>

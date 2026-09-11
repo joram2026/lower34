@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400">
+  <defs>
+    <linearGradient id="bgGradSig" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16" />
+      <stop offset="50%" stop-color="#181309" />
+      <stop offset="100%" stop-color="#090d16" />
+    </linearGradient>
+
+    <linearGradient id="goldSig" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="50%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+
+    <filter id="glowSig" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="400" fill="url(#bgGradSig)" />
+
+  <!-- Radar Grid Circles (Centered at x=340, y=230) -->
+  <g stroke="#f59e0b" stroke-width="1" opacity="0.2">
+    <circle cx="340" cy="230" r="140" fill="none" stroke-dasharray="4,4" />
+    <circle cx="340" cy="230" r="100" fill="none" />
+    <circle cx="340" cy="230" r="60" fill="none" />
+    <circle cx="340" cy="230" r="20" fill="none" />
+    <line x1="160" y1="230" x2="520" y2="230" />
+    <line x1="340" y1="80" x2="340" y2="370" />
+  </g>
+
+  <!-- Left Side: Brand Logo Badge (Safe margin x=140) -->
+  <g transform="translate(140, 30)">
+    <rect x="0" y="0" width="180" height="56" rx="12" fill="#0f172a" stroke="#f59e0b" stroke-width="1.5" opacity="0.95" />
+    
+    <g transform="translate(10, 8)">
+      <rect width="40" height="40" rx="8" fill="#1e293b" />
+      <path d="M 10 30 L 10 12 L 20 24 L 30 12 L 30 30" fill="none" stroke="url(#goldSig)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+
+    <text x="58" y="30" font-family="sans-serif" font-weight="900" font-size="18" fill="#ffffff" letter-spacing="1.5">CME</text>
+    <text x="58" y="44" font-family="sans-serif" font-weight="700" font-size="8" fill="#f59e0b" letter-spacing="1">SIGNALS ENGINE</text>
+  </g>
+
+  <!-- Header Title (Safe margin x=520 to 1060) -->
+  <g transform="translate(520, 30)">
+    <text x="0" y="32" font-family="sans-serif" font-weight="900" font-size="28" fill="#ffffff">LIVE PRECISION SIGNALS LOGIC</text>
+    <rect x="0" y="44" width="310" height="22" rx="11" fill="#1e130a" stroke="#f59e0b" stroke-width="1" />
+    <text x="12" y="59" font-family="sans-serif" font-weight="700" font-size="10" fill="#fbbf24">Real-Time Technical Indicator &amp; Trend Analysis</text>
+  </g>
+
+  <!-- Radar Satellite Icon at Center (x=340, y=230) -->
+  <g transform="translate(340, 230)">
+    <circle cx="0" cy="0" r="26" fill="#f59e0b" filter="url(#glowSig)" opacity="0.8" />
+    <circle cx="0" cy="0" r="14" fill="#ffffff" />
+    <circle cx="0" cy="0" r="6" fill="#1e130a" />
+  </g>
+
+  <!-- Radar Signal Badges -->
+  <g transform="translate(210, 150)">
+    <rect width="100" height="34" rx="10" fill="#052e16" stroke="#10b981" stroke-width="2" filter="url(#glowSig)" />
+    <text x="50" y="22" font-family="sans-serif" font-weight="900" font-size="12" fill="#34d399" text-anchor="middle">BUY BTC</text>
+  </g>
+
+  <g transform="translate(380, 270)">
+    <rect width="100" height="34" rx="10" fill="#450a0a" stroke="#ef4444" stroke-width="2" filter="url(#glowSig)" />
+    <text x="50" y="22" font-family="sans-serif" font-weight="900" font-size="12" fill="#fca5a5" text-anchor="middle">SELL EUR</text>
+  </g>
+
+  <!-- Active Signals Table / Cards (x=520 to 1060, width 520) -->
+  <g transform="translate(520, 120)">
+    <rect x="0" y="0" width="520" height="240" rx="20" fill="#0f172a" stroke="#f59e0b" stroke-width="1.5" opacity="0.9" />
+
+    <!-- Table Header -->
+    <text x="24" y="32" font-family="sans-serif" font-weight="900" font-size="14" fill="#ffffff">LIVE SIGNAL FEED</text>
+    <rect x="380" y="16" width="115" height="22" rx="6" fill="#10b981" opacity="0.2" />
+    <text x="437" y="31" font-family="sans-serif" font-weight="800" font-size="10" fill="#34d399" text-anchor="middle">● 98.4% ACCURACY</text>
+
+    <!-- Signal Card 1 -->
+    <g transform="translate(20, 48)">
+      <rect x="0" y="0" width="480" height="52" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <circle cx="25" cy="26" r="12" fill="#10b981" />
+      <text x="25" y="30" font-family="sans-serif" font-weight="900" font-size="11" fill="#ffffff" text-anchor="middle">▲</text>
+      <text x="48" y="24" font-family="sans-serif" font-weight="900" font-size="14" fill="#ffffff">BTC/USDT</text>
+      <text x="48" y="40" font-family="sans-serif" font-weight="700" font-size="10" fill="#34d399">STRONG BUY @ $94,250</text>
+      <text x="450" y="32" font-family="sans-serif" font-weight="900" font-size="15" fill="#34d399" text-anchor="end">+4.8% TP</text>
+    </g>
+
+    <!-- Signal Card 2 -->
+    <g transform="translate(20, 108)">
+      <rect x="0" y="0" width="480" height="52" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <circle cx="25" cy="26" r="12" fill="#ef4444" />
+      <text x="25" y="30" font-family="sans-serif" font-weight="900" font-size="11" fill="#ffffff" text-anchor="middle">▼</text>
+      <text x="48" y="24" font-family="sans-serif" font-weight="900" font-size="14" fill="#ffffff">EUR/USD</text>
+      <text x="48" y="40" font-family="sans-serif" font-weight="700" font-size="10" fill="#fca5a5">SELL ENTRY @ 1.0420</text>
+      <text x="450" y="32" font-family="sans-serif" font-weight="900" font-size="15" fill="#ef4444" text-anchor="end">+2.1% TP</text>
+    </g>
+
+    <!-- Signal Card 3 -->
+    <g transform="translate(20, 168)">
+      <rect x="0" y="0" width="480" height="52" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <circle cx="25" cy="26" r="12" fill="#f59e0b" />
+      <text x="25" y="30" font-family="sans-serif" font-weight="900" font-size="11" fill="#ffffff" text-anchor="middle">▲</text>
+      <text x="48" y="24" font-family="sans-serif" font-weight="900" font-size="14" fill="#ffffff">XAU/USD (GOLD)</text>
+      <text x="48" y="40" font-family="sans-serif" font-weight="700" font-size="10" fill="#fbbf24">STRONG BUY @ $2,860</text>
+      <text x="450" y="32" font-family="sans-serif" font-weight="900" font-size="15" fill="#f59e0b" text-anchor="end">+6.4% TP</text>
+    </g>
+  </g>
+</svg>

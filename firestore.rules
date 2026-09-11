@@ -1,0 +1,173 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if the user is an Admin
+    function isAdmin() {
+      return request.auth != null && 
+             (
+               (request.auth.token != null && 
+                request.auth.token.email != null && 
+                (
+                  request.auth.token.email.lower() == 'love@gmail.com' ||
+                  request.auth.token.email.lower() == 'joram4036@gmail.com' ||
+                  request.auth.token.email.lower() == 'admin@admin.com' ||
+                  request.auth.token.email.lower() == 'admin@morex.com'
+                )) ||
+               exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+             );
+    }
+
+    // Helper function to check if the user is authenticated
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if the document belongs to the logged-in user
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Admins Collection rules
+    match /admins/{adminId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // Users Collection rules
+    match /users/{userId} {
+      allow read, list: if true;
+      // A user can create their own profile during registration
+      allow create: if isAuth() && isOwner(userId);
+      // Only owner can update details like password/displayName, but cannot change withdrawal permission or email
+      // Admin has complete control over updating anything
+      // Non-owner authenticated users can update balance when receiving a referral reward, voucher or P2P/internal transfer
+      // Allow unauthenticated update if ONLY updating 'accountPassword' (for forgot password reset)
+      allow update: if isAdmin() || 
+                    (isAuth() && isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['withdrawalEnabled', 'email'])) ||
+                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['accountPassword', 'authEmail', 'authEmailVersion', 'uid'])) ||
+                    (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['balance', 'usdtBalance', 'tradeBalance', 'extraSignalPassUntil']));
+      allow delete: if isAdmin();
+    }
+
+    // Transactions Collection rules
+    match /transactions/{transactionId} {
+      allow read: if isAdmin() || (isAuth() && (resource == null || resource.data.userId == request.auth.uid));
+      // Standard users can submit pending transactions (deposits/withdrawals) or approved virtual transactions (trades/swaps/P2P instant release/internal transfers/vouchers)
+      // Also allow creating approved referral_reward, copy trade, and transfer transactions
+      allow create: if isAdmin() || (isAuth() && (
+        (request.resource.data.userId == request.auth.uid && 
+         (request.resource.data.status == 'PENDING APPROVAL' || 
+          (request.resource.data.status in ['APPROVED', 'WIN', 'LOSS', 'COMPLETED', 'SUCCESS'] && 
+           request.resource.data.type in [
+             'buy_crypto', 'sell_crypto', 'swap_crypto', 'withdraw_p2p', 'withdraw_crypto', 'deposit_crypto', 'deposit_p2p',
+             'invested', 'investment_earning', 'internal_send', 'Auto Bot trade', 'bot_harvest', 'bot_trade', 
+             'bot_capital_deployment', 'bot_capital_return', 'copy_trade_payout', 'copy_trade', 'copy_trade_capital_locked',
+             'copy_trade_upgrade', 'trade_balance_transfer_in', 'trade_balance_transfer_out', 'welcome_bonus', 'first_deposit_commission',
+             'voucher_reward'
+           ]))) ||
+        (request.resource.data.type in ['internal_receive', 'copy_trade_payout', 'copy_trade_upgrade', 'trade_balance_transfer_in', 'trade_balance_transfer_out', 'voucher_reward'] && request.resource.data.status in ['APPROVED', 'WIN', 'LOSS', 'COMPLETED', 'SUCCESS']) ||
+        (request.resource.data.type == 'referral_reward' && 
+         request.resource.data.status == 'APPROVED')
+      ));
+      // Standard users cannot edit transaction status or detail, only Admin can approve/decline
+      // Exception: standard user can complete P2P sell when they click "I HAVE RECEIVED PAYMENT"
+      allow update: if isAdmin() || (isAuth() && resource.data.userId == request.auth.uid && 
+                    resource.data.status == 'PENDING APPROVAL' && 
+                    request.resource.data.status == 'PENDING APPROVAL'); // Allowed to edit details but not status
+      allow delete: if isAdmin();
+    }
+
+    // Promo Codes configuration rules
+    match /promo_codes/{codeId} {
+      allow read: if isAuth();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['redemptionCount', 'claimedBy', 'updatedAt', 'currentRedemptions']));
+    }
+
+    // User Voucher Claims rules
+    match /user_voucher_claims/{claimId} {
+      allow read: if isAdmin() || (isAuth() && (resource == null || resource.data.userId == request.auth.uid));
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // Referral Codes mapping rules
+    match /referralCodes/{code} {
+      allow read: if isAuth();
+      allow create, update: if isAuth() && request.resource.data.uid == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    // Crypto Networks configuration rules
+    match /crypto_networks/{networkId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // P2P Merchants configuration rules
+    match /p2p_merchants/{merchantId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // Crypto Prices configuration rules
+    match /crypto_prices/{symbol} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Investments configuration rules
+    match /investments/{investmentId} {
+      allow read: if isAdmin() || (isAuth() && (resource == null || resource.data.userId == request.auth.uid));
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin() || (isAuth() && resource.data.userId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    // Bot Templates rules
+    match /bot_templates/{templateId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // User Bots rules
+    match /user_bots/{botId} {
+      allow read: if isAdmin() || (isAuth() && (resource == null || resource.data.userId == request.auth.uid));
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin() || (isAuth() && resource.data.userId == request.auth.uid);
+      allow delete: if isAdmin() || (isAuth() && resource.data.userId == request.auth.uid);
+    }
+
+    // Copy Trader Leads configuration rules
+    match /copy_trader_leads/{leadId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // User Copy Trades rules
+    match /user_copy_trades/{tradeId} {
+      allow read: if isAdmin() || (isAuth() && (resource == null || resource.data.userId == request.auth.uid));
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin() || (isAuth() && resource.data.userId == request.auth.uid);
+    }
+
+    // Settings configuration rules
+    match /settings/{settingId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // In-App Promotional Ads configuration rules
+    match /in_app_ads/{adId} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount', 'clickCount']));
+    }
+
+    // Email Verifications for signup OTP
+    match /email_verifications/{emailDoc} {
+      allow read, write: if true;
+    }
+  }
+}

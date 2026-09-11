@@ -1,0 +1,33 @@
+{
+  "short_name": "CME",
+  "name": "CME",
+  "description": "CME cryptocurrency trading, peer-to-peer (P2P) escrows, automated bot trading, and high-yield financial portfolios.",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ],
+  "id": "/?source=pwa",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "background_color": "#EBF9F0",
+  "theme_color": "#008B47",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "categories": ["finance", "utilities"]
+}
