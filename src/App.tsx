@@ -258,6 +258,7 @@ export default function App() {
         <ProfileView
           user={user}
           onBack={() => navigate('/dashboard')}
+          onNavigate={(targetPath) => navigate(targetPath)}
         />
       )}
 

@@ -474,7 +474,7 @@ export const AdminAdsManager: React.FC<AdminAdsManagerProps> = ({
                     className="w-full p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
                   >
                     <option value="EARN">📈 Earn / Copy Trading Tab</option>
-                    <option value="DEPOSIT">💳 Deposit / Add Funds Modal</option>
+                    <option value="DEPOSIT">💳 Deposit Modal</option>
                     <option value="REFERRALS">🎁 Referrals & Signal Passes Tab</option>
                     <option value="BOTS">🤖 AI Trading Bots Tab</option>
                     <option value="UPGRADE">⚡ Contract Upgrade Modal</option>

@@ -99,8 +99,8 @@ export const DEFAULT_COPY_LEADS: CopyTraderLead[] = [
   {
     id: 'lead-alex-rivers',
     name: 'Alex "Apex" Rivers',
-    photoUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&crop=face&w=160&h=160&q=75&fm=webp',
-    description: 'Senior Quantitative Forex & Crypto Trader with 12+ years of market experience. Specializes in BTC/ETH algorithmic momentum and risk-managed break-outs.',
+    photoUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&crop=face&w=160&h=160&q=80&fm=webp',
+    description: 'Senior Quantitative Forex & Crypto Trader with 12+ years of institutional market experience. Specializes in BTC/ETH algorithmic momentum and risk-managed breakouts.',
     signalsPerDay: '2 signals/day',
     winRate: '98.4%',
     copiersCount: 1420,
@@ -119,9 +119,9 @@ export const DEFAULT_COPY_LEADS: CopyTraderLead[] = [
   },
   {
     id: 'lead-elena-rostova',
-    name: 'Elena Rostova',
-    photoUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&crop=face&w=160&h=160&q=75&fm=webp',
-    description: 'Former Wall Street Macro Strategist focusing on swing trading and multi-asset arbitrage across top cryptocurrencies.',
+    name: 'Dmitri Rostov',
+    photoUrl: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?auto=format&fit=crop&crop=face&w=160&h=160&q=80&fm=webp',
+    description: 'Senior Wall Street Macro Strategist focusing on institutional swing trading, multi-asset arbitrage, and systematic capital growth across high-liquidity crypto assets.',
     signalsPerDay: '2 signals/day',
     winRate: '96.8%',
     copiersCount: 980,
@@ -133,16 +133,16 @@ export const DEFAULT_COPY_LEADS: CopyTraderLead[] = [
     contractDurationDays: 30,
     tradingPairs: ['ETH/USDT', 'BTC/USDT', 'BNB/USDT', 'SOL/USDT'],
     signals: [
-      { id: 'sig-1', time: '12:00', code: 'ELENA12' },
-      { id: 'sig-2', time: '18:00', code: 'ELENA18' }
+      { id: 'sig-1', time: '12:00', code: 'ROSTOV12' },
+      { id: 'sig-2', time: '18:00', code: 'ROSTOV18' }
     ],
     riskLevel: 'Moderate'
   },
   {
     id: 'lead-david-chen',
     name: 'David Chen (Quantum Trading)',
-    photoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&crop=face&w=160&h=160&q=75&fm=webp',
-    description: 'High-frequency intraday scalper leveraging custom proprietary indicators for rapid intraday profit capture.',
+    photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&crop=face&w=160&h=160&q=80&fm=webp',
+    description: 'High-frequency quantitative intraday scalper leveraging custom proprietary indicators and order-flow analytics for rapid profit capture.',
     signalsPerDay: '2 signals/day',
     winRate: '94.5%',
     copiersCount: 2150,
@@ -161,9 +161,9 @@ export const DEFAULT_COPY_LEADS: CopyTraderLead[] = [
   },
   {
     id: 'lead-sarah-jenkins',
-    name: 'Sarah Jenkins',
-    photoUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&crop=face&w=160&h=160&q=75&fm=webp',
-    description: 'Risk-first DeFi and Spot position trader with a disciplined 1:3 risk-reward ratio strategy.',
+    name: 'Marcus Jenkins',
+    photoUrl: 'https://images.unsplash.com/photo-1556157382-97eda2d62296?auto=format&fit=crop&crop=face&w=160&h=160&q=80&fm=webp',
+    description: 'Risk-first DeFi and Spot portfolio director with a disciplined 1:3 risk-reward ratio strategy and strict algorithmic drawdown mitigation.',
     signalsPerDay: '2 signals/day',
     winRate: '97.2%',
     copiersCount: 860,
@@ -175,8 +175,8 @@ export const DEFAULT_COPY_LEADS: CopyTraderLead[] = [
     contractDurationDays: 30,
     tradingPairs: ['BTC/USDT', 'ETH/USDT', 'USDC/USDT', 'SOL/USDT'],
     signals: [
-      { id: 'sig-1', time: '14:00', code: 'SARAH14' },
-      { id: 'sig-2', time: '21:00', code: 'SARAH21' }
+      { id: 'sig-1', time: '14:00', code: 'MARCUS14' },
+      { id: 'sig-2', time: '21:00', code: 'MARCUS21' }
     ],
     riskLevel: 'Low Risk'
   }

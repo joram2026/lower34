@@ -32,6 +32,32 @@ const DISPOSABLE_DOMAINS = new Set([
   'tempail.com', 'nada.ltd'
 ]);
 
+// Helper to determine the best valid sender address
+function getSenderAddress(): string {
+  const customFrom = process.env.SMTP_FROM?.trim();
+  if (customFrom) {
+    if (customFrom.includes('<') && customFrom.includes('>')) {
+      return customFrom;
+    }
+    return `"CME Trading Security" <${customFrom}>`;
+  }
+
+  const host = process.env.SMTP_HOST || '';
+  const user = process.env.SMTP_USER || '';
+
+  // If using Resend SMTP, default to onboarding@resend.dev if custom from not supplied
+  if (host.includes('resend.com') || user.toLowerCase() === 'resend') {
+    return `"CME Trading Security" <onboarding@resend.dev>`;
+  }
+
+  // If SMTP user is a valid email, use that
+  if (user.includes('@')) {
+    return `"CME Trading Security" <${user}>`;
+  }
+
+  return `"CME Trading Security" <noreply@cme-trading.org>`;
+}
+
 // Helper to configure nodemailer transporter from environment variables
 function getMailTransporter() {
   const host = process.env.SMTP_HOST;
@@ -48,6 +74,9 @@ function getMailTransporter() {
       auth: {
         user,
         pass,
+      },
+      tls: {
+        rejectUnauthorized: false,
       },
     });
   }
@@ -138,58 +167,134 @@ async function startServer() {
       // Attempt to send real email via configured SMTP
       const transporter = getMailTransporter();
       if (transporter) {
-        const fromAddress = process.env.SMTP_FROM || `"CME Trading Security" <${process.env.SMTP_USER}>`;
+        const fromAddress = getSenderAddress();
+        const replyToAddress = process.env.SMTP_REPLY_TO?.trim() || 
+          (fromAddress.includes('<') ? fromAddress.match(/<([^>]+)>/)?.[1] || fromAddress : fromAddress);
         const greetingName = displayName ? displayName.trim() : "Valued Trader";
 
-        const htmlTemplate = `
-          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 540px; margin: 0 auto; padding: 32px 20px; background-color: #EBF9F0; border: 1px solid #c7eed6; border-radius: 20px; color: #004D27;">
-            <div style="text-align: center; margin-bottom: 24px;">
-              <div style="display: inline-block; background: linear-gradient(135deg, #008B47, #00A653); padding: 12px 24px; border-radius: 14px; color: #ffffff; font-weight: 900; font-size: 18px; letter-spacing: 0.8px; border: 1.5px solid #F4E100; box-shadow: 0 4px 14px rgba(0, 139, 71, 0.25);">
-                CME TRADING
-              </div>
-              <p style="color: #007038; font-size: 12px; margin-top: 8px; font-weight: 600;">Institutional Digital Trading & Copy Trading Gateway</p>
-            </div>
+        const htmlTemplate = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="format-detection" content="telephone=no"/>
+  <title>${otpCode} is your CME Trading verification code</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+  <!-- Anti-spam Inbox Preheader snippet -->
+  <div style="display: none; font-size: 1px; color: #f8fafc; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden; mso-hide: all;">
+    Your CME Trading verification code is ${otpCode}. Valid for 10 minutes.
+    &#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;
+  </div>
 
-            <div style="background-color: #ffffff; border: 1px solid #ccebd7; border-radius: 16px; padding: 28px 24px; box-shadow: 0 2px 10px rgba(0, 77, 39, 0.05);">
-              <h2 style="font-size: 20px; font-weight: 800; color: #004D27; margin-top: 0; margin-bottom: 12px;">Verify your email address</h2>
-              <p style="font-size: 14px; line-height: 1.6; color: #1f2937; margin-bottom: 24px;">
-                Hello <strong>${greetingName}</strong>,<br>
-                Thank you for joining CME Trading. To complete your registration and protect your account, please enter the one-time verification passcode below:
+  <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: fixed; background-color: #f8fafc; padding: 32px 12px;">
+    <tr>
+      <td align="center">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.04);">
+          
+          <!-- Header Branding -->
+          <tr>
+            <td style="background-color: #ffffff; padding: 32px 32px 16px 32px; border-bottom: 1px solid #f1f5f9;">
+              <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td>
+                    <div style="display: inline-block; background-color: #008B47; color: #ffffff; font-weight: 900; font-size: 14px; letter-spacing: 1.2px; padding: 6px 14px; border-radius: 6px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                      CME TRADING
+                    </div>
+                  </td>
+                  <td align="right">
+                    <span style="font-size: 12px; color: #64748b; font-weight: 500;">
+                      Security Verification
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 32px 32px 24px 32px;">
+              <h1 style="font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 12px 0; line-height: 1.3;">
+                Confirm your email address
+              </h1>
+              <p style="font-size: 14px; line-height: 1.6; color: #334155; margin: 0 0 24px 0;">
+                Hello <strong>${greetingName}</strong>,<br/>
+                Please use the one-time verification code below to complete your registration for CME Trading.
               </p>
 
-              <div style="text-align: center; margin: 28px 0; background: #EBF9F0; border: 2px dashed #008B47; border-radius: 14px; padding: 18px;">
-                <span style="font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #007038; display: block;">
-                  ${otpCode}
-                </span>
-                <span style="font-size: 11px; color: #008B47; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 6px; display: block;">
-                  Valid for 10 minutes • Do not share
-                </span>
-              </div>
+              <!-- OTP Code Display Card -->
+              <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 20px 0 24px 0;">
+                <tr>
+                  <td align="center" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 24px 16px;">
+                    <div style="font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-size: 40px; font-weight: 800; letter-spacing: 10px; color: #007038; line-height: 1; text-align: center;">
+                      ${otpCode}
+                    </div>
+                    <div style="font-size: 11px; color: #166534; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 10px;">
+                      Expires in 10 minutes &bull; One-time passcode
+                    </div>
+                  </td>
+                </tr>
+              </table>
 
-              <p style="font-size: 12px; line-height: 1.5; color: #4b5563; margin-bottom: 0;">
-                If you did not request this verification code, please ignore this email. No account will be created without this passcode.
+              <p style="font-size: 13px; line-height: 1.5; color: #64748b; margin: 0 0 12px 0;">
+                Never share this code with anyone. CME Trading staff will never ask you for your verification code.
               </p>
-            </div>
+              <p style="font-size: 12px; line-height: 1.5; color: #94a3b8; margin: 0;">
+                If you did not request this verification code, you can safely disregard this email. No account has been created yet.
+              </p>
+            </td>
+          </tr>
 
-            <div style="text-align: center; margin-top: 24px; font-size: 11px; color: #007038;">
-              © ${new Date().getFullYear()} CME Trading. All rights reserved. Automated security notification.
-            </div>
-          </div>
-        `;
+          <!-- Compliance & Trust Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 32px; text-align: center;">
+              <p style="font-size: 11px; color: #64748b; margin: 0 0 6px 0; line-height: 1.5;">
+                This message was sent to <strong style="color: #334155;">${cleanEmail}</strong> regarding your registration request.
+              </p>
+              <p style="font-size: 10px; color: #94a3b8; margin: 0; line-height: 1.4;">
+                CME Trading Services &bull; 20 S Wacker Dr, Chicago, IL 60606 &bull; Automated Security Notification
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+        const isResend = Boolean(
+          (process.env.SMTP_HOST && process.env.SMTP_HOST.includes('resend.com')) ||
+          (process.env.SMTP_USER && process.env.SMTP_USER.toLowerCase() === 'resend')
+        );
+        const fromRaw = process.env.SMTP_FROM || '';
+        const isResendSandbox = isResend && (!fromRaw || fromRaw.includes('resend.dev'));
 
         try {
           await transporter.sendMail({
             from: fromAddress,
             to: cleanEmail,
+            replyTo: replyToAddress,
             subject: `${otpCode} is your CME Trading verification code`,
-            text: `Your CME Trading verification code is ${otpCode}. Valid for 10 minutes.`,
+            text: `Hello ${greetingName},\n\nYour one-time verification code is: ${otpCode}\n\nThis verification code expires in 10 minutes.\n\nNever share this code with anyone. CME Trading representatives will never ask you for this code.\n\nIf you did not request this code, you can safely ignore this email.\n\nBest regards,\nCME Trading Security\n20 S Wacker Dr, Chicago, IL 60606`,
             html: htmlTemplate,
+            headers: {
+              'Auto-Submitted': 'auto-generated',
+              'X-Auto-Response-Suppress': 'All',
+            },
           });
+
+          console.log(`[CME Trading Security] Verification email sent to ${cleanEmail} via SMTP. (Resend: ${isResend}, Sandbox: ${isResendSandbox})`);
 
           return res.json({
             success: true,
-            previewMode: false,
-            message: `Verification code sent to ${cleanEmail}`,
+            previewMode: isResendSandbox,
+            previewCode: isResendSandbox ? otpCode : undefined,
+            resendSandbox: isResendSandbox,
+            message: isResendSandbox
+              ? `Verification code dispatched via Resend sandbox. Note: Resend test domain (onboarding@resend.dev) restricts delivery to the account owner's email until you verify your domain at resend.com/domains.`
+              : `Verification code sent to ${cleanEmail}. Please check your inbox and Spam/Junk folder.`,
           });
         } catch (mailErr: any) {
           console.error("[SMTP Error] Failed to send email via SMTP:", mailErr);

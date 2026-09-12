@@ -465,6 +465,35 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
           }
         }
         leads = [...DEFAULT_COPY_LEADS];
+      } else {
+        // Sync any default system leads to ensure they use serious professional male trader profiles
+        for (const defaultLead of DEFAULT_COPY_LEADS) {
+          const existing = leads.find(l => l.id === defaultLead.id);
+          if (existing) {
+            const isOldPhoto = !existing.photoUrl || 
+              existing.photoUrl.includes('photo-1519085360753-af0119f7cbe7') || 
+              existing.photoUrl.includes('photo-1500648767791-00dcc994a43e') || 
+              existing.photoUrl.includes('photo-1472099645785-5658abf4ff4e') || 
+              existing.photoUrl.includes('photo-1534528741775-53994a69daeb');
+            const isOldName = existing.name === 'Elena Rostova' || existing.name === 'Sarah Jenkins';
+            if (isOldPhoto || isOldName) {
+              try {
+                await updateDoc(doc(db, 'copy_trader_leads', defaultLead.id), {
+                  name: isOldName ? defaultLead.name : existing.name,
+                  photoUrl: defaultLead.photoUrl,
+                  description: isOldName ? defaultLead.description : existing.description
+                });
+                existing.photoUrl = defaultLead.photoUrl;
+                if (isOldName) {
+                  existing.name = defaultLead.name;
+                  existing.description = defaultLead.description;
+                }
+              } catch (e) {
+                console.error("Error syncing copy lead to serious professional profile:", e);
+              }
+            }
+          }
+        }
       }
       setCopyLeadsList(leads);
 
@@ -1625,7 +1654,7 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
     setEditingLead(null);
     setLeadForm({
       name: '',
-      photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=400',
+      photoUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&crop=face&w=400&h=400&q=80&fm=webp',
       description: '',
       signalsPerDay: '2 signals/day',
       winRate: '98.5%',
@@ -1797,7 +1826,7 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
 
       const leadData: Partial<CopyTraderLead> = {
         name: leadForm.name.trim(),
-        photoUrl: leadForm.photoUrl.trim() || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=400',
+        photoUrl: leadForm.photoUrl.trim() || 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&crop=face&w=400&h=400&q=80&fm=webp',
         description: leadForm.description.trim(),
         signalsPerDay: signalsLabel,
         winRate: leadForm.winRate.trim() || '98.5%',

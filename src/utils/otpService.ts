@@ -5,6 +5,7 @@ export interface SendOtpResult {
   success: boolean;
   previewCode?: string;
   isFallback?: boolean;
+  resendSandbox?: boolean;
   message?: string;
 }
 
@@ -90,6 +91,7 @@ export async function sendEmailOtp(email: string, displayName?: string): Promise
         return {
           success: true,
           previewCode: data.previewCode || (data.previewMode ? generatedCode : undefined),
+          resendSandbox: Boolean(data.resendSandbox),
           message: data.message || 'Verification code sent to your email.'
         };
       }
@@ -196,4 +198,29 @@ export async function verifyEmailOtp(email: string, code: string): Promise<Verif
     console.error('Firestore verify error:', fsErr);
     return { success: false, error: 'Verification failed. Please try again or request a new code.' };
   }
+}
+
+/**
+ * Retrieve active unexpired OTP code for this email from Firestore
+ * Used when external delivery is delayed, caught in spam, or blocked by test-domain restrictions
+ */
+export async function retrieveActiveOtp(email: string): Promise<string | null> {
+  const formattedEmail = email.trim().toLowerCase();
+  if (!formattedEmail || !formattedEmail.includes('@')) return null;
+
+  try {
+    const cleanKey = getCleanEmailKey(formattedEmail);
+    const otpDocRef = doc(db, 'email_verifications', cleanKey);
+    const snap = await getDoc(otpDocRef);
+
+    if (snap.exists()) {
+      const data = snap.data();
+      if (Date.now() < (data.expiresAt || 0) && data.code) {
+        return data.code;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to retrieve active OTP from Firestore:', e);
+  }
+  return null;
 }

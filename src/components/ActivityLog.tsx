@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { db, auth } from '../firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { Transaction } from '../types';
 import { 
   ArrowDownLeft, ArrowUpRight, ArrowRightLeft, Clock, CheckCircle2, XCircle, 
-  ChevronDown, ChevronUp, Filter, RefreshCw, Calendar, ListFilter, Gift, TrendingUp, Send, Bot, Sparkles
+  ChevronDown, ChevronUp, RefreshCw, Calendar, Gift, TrendingUp, Send, Bot, 
+  Sparkles, Search, Copy, Check, ArrowDown, ArrowUp, Wallet, Layers, ShieldCheck,
+  ReceiptText, X
 } from 'lucide-react';
 
 enum OperationType {
@@ -51,39 +53,28 @@ interface ActivityLogProps {
   isLightTheme?: boolean;
 }
 
-const FILTER_OPTIONS = [
-  { value: 'all', label: 'All Transactions' },
-  { value: 'vouchers', label: 'Vouchers & Promos' },
-  { value: 'bot', label: 'Auto Bot Trade' },
-  { value: 'deposits', label: 'Deposits' },
-  { value: 'withdrawals', label: 'Withdrawals' },
-  { value: 'buy', label: 'Buy Crypto' },
-  { value: 'sell', label: 'Sell Crypto' },
-  { value: 'swap', label: 'Swap & Convert' },
-  { value: 'referral', label: 'Referral Rewards' },
-  { value: 'investments', label: 'Trading Signals' },
-] as const;
+type FilterCategory = 'all' | 'deposits' | 'withdrawals' | 'copy' | 'bot' | 'rewards' | 'buysell' | 'transfers';
+
+const FILTER_PILLS: { id: FilterCategory; label: string }[] = [
+  { id: 'all', label: 'All History' },
+  { id: 'deposits', label: 'Deposits' },
+  { id: 'withdrawals', label: 'Withdrawals' },
+  { id: 'copy', label: 'Copy & Signals' },
+  { id: 'bot', label: 'Bot Trades' },
+  { id: 'rewards', label: 'Rewards & Bonus' },
+  { id: 'buysell', label: 'Buy & Sell' },
+  { id: 'transfers', label: 'Transfers' },
+];
 
 export default function ActivityLog({ userId, isLightTheme = false }: ActivityLogProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'vouchers' | 'deposits' | 'withdrawals' | 'buy' | 'sell' | 'swap' | 'referral' | 'investments' | 'bot'>('all');
+  const [activeFilter, setActiveFilter] = useState<FilterCategory>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
-
-  // Close dropdown when user clicks outside
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleOutsideClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('#custom-dropdown-container')) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('click', handleOutsideClick);
-    return () => document.removeEventListener('click', handleOutsideClick);
-  }, [isOpen]);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -99,81 +90,31 @@ export default function ActivityLog({ userId, isLightTheme = false }: ActivityLo
 
         // Sort descending by creation date
         list.sort((a, b) => {
-          const aTime = a.createdAt?.seconds || a.createdAt?.getTime?.() / 1000 || 0;
-          const bTime = b.createdAt?.seconds || b.createdAt?.getTime?.() / 1000 || 0;
+          const aTime = a.createdAt?.seconds || (a.createdAt instanceof Date ? a.createdAt.getTime() / 1000 : 0);
+          const bTime = b.createdAt?.seconds || (b.createdAt instanceof Date ? b.createdAt.getTime() / 1000 : 0);
           return bTime - aTime;
         });
 
         setTransactions(list);
         setLoading(false);
+        setIsRefreshing(false);
       } catch (err) {
         handleFirestoreError(err, OperationType.GET, 'transactions');
       }
     }, (err) => {
       setError(err.message);
       setLoading(false);
+      setIsRefreshing(false);
       handleFirestoreError(err, OperationType.GET, 'transactions');
     });
 
     return () => unsubscribe();
   }, [userId]);
 
-  // Filter transactions based on selection
-  const filteredTransactions = transactions.filter(tx => {
-    const isVoucher = tx.type === 'voucher_reward' || tx.type === 'voucher' || tx.type === 'promo_voucher' || tx.type?.toLowerCase?.().includes('voucher') || (tx.title && tx.title.toLowerCase().includes('voucher'));
-    const isDeposit = tx.type.startsWith('deposit');
-    const isUpgrade = tx.type === 'copy_trade_upgrade' || 
-                      (tx.title && (tx.title.toLowerCase().includes('upgrade') || tx.title.toLowerCase().includes('rollover'))) ||
-                      (tx.paymentMessage && (tx.paymentMessage.toLowerCase().includes('upgraded copy') || tx.paymentMessage.toLowerCase().includes('rolled over')));
-    const isWithdrawal = tx.type.startsWith('withdraw') && !isUpgrade;
-    const isBuy = tx.type === 'buy_crypto';
-    const isSell = tx.type === 'sell_crypto';
-    const isSwap = tx.type === 'swap_crypto';
-    const isReferral = tx.type === 'referral_reward' || tx.type === 'first_deposit_commission' || tx.type === 'welcome_bonus';
-    const isInvestment = tx.type === 'invested' || tx.type === 'investment_earning';
-    const isBot = tx.type === 'Auto Bot trade' || tx.type === 'bot_harvest' || tx.type === 'bot_trade' || tx.type === 'bot' || tx.type?.toLowerCase?.().includes('bot') || (tx.title && tx.title.toLowerCase().includes('bot'));
-    const isCopyTrade = tx.type?.startsWith('copy_trade') || tx.type?.includes('copy_trade') || isUpgrade;
-
-    if (filter === 'vouchers') return isVoucher;
-    if (filter === 'bot') return isBot;
-    if (filter === 'deposits') return isDeposit;
-    if (filter === 'withdrawals') return isWithdrawal && !isBot && !isVoucher && !isUpgrade;
-    if (filter === 'buy') return isBuy;
-    if (filter === 'sell') return isSell;
-    if (filter === 'swap') return isSwap;
-    if (filter === 'referral') return isReferral;
-    if (filter === 'investments') return isInvestment || isBot || isCopyTrade;
-    
-    // For 'all' filter, show everything
-    return true;
-  });
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'APPROVED':
-        return <CheckCircle2 size={14} className="text-emerald-400" />;
-      case 'DECLINED':
-        return <XCircle size={14} className="text-red-400" />;
-      default:
-        return <Clock size={14} className="text-amber-400" />;
-    }
-  };
-
-  const getStatusBadgeClass = (status: string) => {
-    switch (status) {
-      case 'APPROVED':
-        return isLightTheme 
-          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
-          : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
-      case 'DECLINED':
-        return isLightTheme 
-          ? 'bg-red-50 text-red-800 border border-red-200' 
-          : 'bg-red-500/10 text-red-400 border border-red-500/20';
-      default:
-        return isLightTheme 
-          ? 'bg-amber-50 text-amber-800 border border-amber-200' 
-          : 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
-    }
+  const handleCopy = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   const getTxTypeInfo = (type: string, tx?: any) => {
@@ -197,21 +138,21 @@ export default function ActivityLog({ userId, isLightTheme = false }: ActivityLo
           label: tx?.title || 'Auto Bot Trade',
           isCredit: isBotCredit ? true : false,
           colorClass: isBotCredit 
-            ? (isLightTheme ? 'text-emerald-700 font-extrabold' : 'text-emerald-400')
-            : (isLightTheme ? 'text-amber-700 font-extrabold' : 'text-amber-400'),
+            ? (isLightTheme ? 'text-emerald-700' : 'text-emerald-400')
+            : (isLightTheme ? 'text-amber-700' : 'text-amber-400'),
           bgClass: isBotCredit
-            ? (isLightTheme ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-emerald-500/10 border-emerald-500/15 text-emerald-400')
-            : (isLightTheme ? 'bg-amber-50 border border-amber-200 text-amber-700' : 'bg-amber-500/10 border-amber-500/15 text-amber-400'),
-          icon: <Bot size={16} />
+            ? (isLightTheme ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20')
+            : (isLightTheme ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'),
+          icon: <Bot size={17} />
         };
       }
       case 'referral_reward':
         return {
           label: 'Referral Reward',
           isCredit: true,
-          colorClass: isLightTheme ? 'text-emerald-700 font-extrabold' : 'text-emerald-400',
-          bgClass: isLightTheme ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-emerald-500/10 border-emerald-500/15 text-emerald-400',
-          icon: <Gift size={16} />
+          colorClass: isLightTheme ? 'text-emerald-700' : 'text-emerald-400',
+          bgClass: isLightTheme ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+          icon: <Gift size={17} />
         };
       case 'voucher_reward':
       case 'voucher':
@@ -219,147 +160,147 @@ export default function ActivityLog({ userId, isLightTheme = false }: ActivityLo
         return {
           label: tx?.title || 'Voucher Reward',
           isCredit: true,
-          colorClass: isLightTheme ? 'text-emerald-700 font-extrabold' : 'text-emerald-400',
-          bgClass: isLightTheme ? 'bg-amber-50 border border-amber-200 text-amber-700' : 'bg-amber-500/10 border-amber-500/15 text-amber-400',
-          icon: <Gift size={16} />
+          colorClass: isLightTheme ? 'text-emerald-700' : 'text-emerald-400',
+          bgClass: isLightTheme ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+          icon: <Gift size={17} />
         };
       case 'first_deposit_commission':
         return {
           label: 'Referral Deposit Bonus',
           isCredit: true,
-          colorClass: isLightTheme ? 'text-emerald-700 font-extrabold' : 'text-emerald-400',
-          bgClass: isLightTheme ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-emerald-500/10 border-emerald-500/15 text-emerald-400',
-          icon: <Gift size={16} />
+          colorClass: isLightTheme ? 'text-emerald-700' : 'text-emerald-400',
+          bgClass: isLightTheme ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+          icon: <Gift size={17} />
         };
       case 'welcome_bonus':
         return {
-          label: 'Welcome Deposit Bonus',
+          label: 'Welcome Bonus',
           isCredit: true,
-          colorClass: isLightTheme ? 'text-emerald-700 font-extrabold' : 'text-emerald-400',
-          bgClass: isLightTheme ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-emerald-500/10 border-emerald-500/15 text-emerald-400',
-          icon: <Sparkles size={16} />
+          colorClass: isLightTheme ? 'text-emerald-700' : 'text-emerald-400',
+          bgClass: isLightTheme ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+          icon: <Sparkles size={17} />
         };
       case 'deposit_crypto':
         return {
           label: 'Crypto Deposit',
           isCredit: true,
-          colorClass: isLightTheme ? 'text-emerald-700 font-extrabold' : 'text-emerald-400',
-          bgClass: isLightTheme ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-emerald-500/10 border-emerald-500/15 text-emerald-400',
-          icon: <ArrowDownLeft size={16} />
+          colorClass: isLightTheme ? 'text-emerald-700' : 'text-emerald-400',
+          bgClass: isLightTheme ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+          icon: <ArrowDownLeft size={17} />
         };
       case 'deposit_p2p':
         return {
           label: 'P2P Deposit',
           isCredit: true,
-          colorClass: isLightTheme ? 'text-emerald-700 font-extrabold' : 'text-emerald-400',
-          bgClass: isLightTheme ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-emerald-500/10 border-emerald-500/15 text-emerald-400',
-          icon: <ArrowDownLeft size={16} />
+          colorClass: isLightTheme ? 'text-emerald-700' : 'text-emerald-400',
+          bgClass: isLightTheme ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+          icon: <ArrowDownLeft size={17} />
         };
       case 'withdraw_crypto':
         return {
           label: 'Crypto Withdrawal',
           isCredit: false,
-          colorClass: isLightTheme ? 'text-red-700 font-extrabold' : 'text-red-400',
-          bgClass: isLightTheme ? 'bg-red-50 border-red-200 text-red-700' : 'bg-red-500/10 border-red-500/15 text-red-400',
-          icon: <ArrowUpRight size={16} />
+          colorClass: isLightTheme ? 'text-red-700' : 'text-red-400',
+          bgClass: isLightTheme ? 'bg-red-50 text-red-700 border-red-200' : 'bg-red-500/10 text-red-400 border-red-500/20',
+          icon: <ArrowUpRight size={17} />
         };
       case 'withdraw_p2p':
         return {
           label: 'P2P Withdrawal',
           isCredit: false,
-          colorClass: isLightTheme ? 'text-red-700 font-extrabold' : 'text-red-400',
-          bgClass: isLightTheme ? 'bg-red-50 border-red-200 text-red-700' : 'bg-red-500/10 border-red-500/15 text-red-400',
-          icon: <ArrowUpRight size={16} />
+          colorClass: isLightTheme ? 'text-red-700' : 'text-red-400',
+          bgClass: isLightTheme ? 'bg-red-50 text-red-700 border-red-200' : 'bg-red-500/10 text-red-400 border-red-500/20',
+          icon: <ArrowUpRight size={17} />
         };
       case 'buy_crypto':
         return {
           label: 'Buy Crypto',
-          isCredit: false, // spending USD to buy crypto
-          colorClass: isLightTheme ? 'text-amber-700 font-extrabold' : 'text-[#60a5fa]',
-          bgClass: isLightTheme ? 'bg-amber-50 border border-amber-200 text-amber-700' : 'bg-blue-500/10 border-blue-500/15 text-[#60a5fa]',
-          icon: <ArrowDownLeft size={16} />
+          isCredit: false,
+          colorClass: isLightTheme ? 'text-amber-700' : 'text-blue-400',
+          bgClass: isLightTheme ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+          icon: <ArrowDownLeft size={17} />
         };
       case 'sell_crypto':
         return {
           label: 'Sell Crypto',
-          isCredit: true, // receiving USD from crypto sell
-          colorClass: isLightTheme ? 'text-amber-600 font-extrabold' : 'text-amber-400',
-          bgClass: isLightTheme ? 'bg-amber-50 border border-amber-200 text-amber-650' : 'bg-amber-500/10 border-amber-500/15 text-amber-400',
-          icon: <ArrowUpRight size={16} />
+          isCredit: true,
+          colorClass: isLightTheme ? 'text-amber-700' : 'text-amber-400',
+          bgClass: isLightTheme ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+          icon: <ArrowUpRight size={17} />
         };
       case 'swap_crypto':
         return {
           label: 'Swap & Convert',
-          isCredit: null, // neutral / structural swap
-          colorClass: isLightTheme ? 'text-purple-700 font-extrabold' : 'text-[#a78bfa]', // purple-400
-          bgClass: isLightTheme ? 'bg-purple-50 border border-purple-200 text-purple-750' : 'bg-purple-500/10 border-purple-500/15 text-[#a78bfa]',
-          icon: <ArrowRightLeft size={16} />
+          isCredit: null,
+          colorClass: isLightTheme ? 'text-purple-700' : 'text-purple-400',
+          bgClass: isLightTheme ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+          icon: <ArrowRightLeft size={17} />
         };
       case 'invested':
         return {
-          label: 'Trade Signal',
+          label: 'Trade Signal Lock',
           isCredit: false,
-          colorClass: isLightTheme ? 'text-amber-600 font-extrabold' : 'text-amber-500',
-          bgClass: isLightTheme ? 'bg-amber-50 border border-amber-200 text-amber-600' : 'bg-amber-500/10 border-amber-500/15 text-amber-500',
-          icon: <TrendingUp size={16} />
+          colorClass: isLightTheme ? 'text-amber-700' : 'text-amber-400',
+          bgClass: isLightTheme ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+          icon: <TrendingUp size={17} />
         };
       case 'investment_earning':
         return {
-          label: 'Signal Earning',
+          label: 'Signal Profit Payout',
           isCredit: true,
-          colorClass: isLightTheme ? 'text-emerald-700 font-extrabold' : 'text-emerald-400',
-          bgClass: isLightTheme ? 'bg-emerald-50 border border-emerald-200 text-emerald-750' : 'bg-emerald-500/10 border-emerald-500/15 text-emerald-400',
-          icon: <TrendingUp size={16} />
+          colorClass: isLightTheme ? 'text-emerald-700' : 'text-emerald-400',
+          bgClass: isLightTheme ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+          icon: <TrendingUp size={17} />
         };
       case 'copy_trade_payout':
         return {
           label: 'Copy Trade Payout',
           isCredit: true,
-          colorClass: isLightTheme ? 'text-emerald-700 font-extrabold' : 'text-emerald-400',
-          bgClass: isLightTheme ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-emerald-500/10 border-emerald-500/15 text-emerald-400',
-          icon: <TrendingUp size={16} />
+          colorClass: isLightTheme ? 'text-emerald-700' : 'text-emerald-400',
+          bgClass: isLightTheme ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+          icon: <TrendingUp size={17} />
         };
       case 'copy_trade_upgrade':
         return {
-          label: tx?.title || 'Expert Contract Upgrade',
+          label: tx?.title || 'Contract Upgrade',
           isCredit: null,
-          colorClass: isLightTheme ? 'text-amber-700 font-extrabold' : 'text-amber-400',
-          bgClass: isLightTheme ? 'bg-amber-50 border border-amber-200 text-amber-700' : 'bg-amber-500/10 border-amber-500/15 text-amber-400',
-          icon: <Sparkles size={16} />
+          colorClass: isLightTheme ? 'text-amber-700' : 'text-amber-400',
+          bgClass: isLightTheme ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+          icon: <Sparkles size={17} />
         };
       case 'trade_balance_transfer_in':
       case 'copy_trade_transfer_in':
         return {
-          label: 'Copy Trade Transfer In',
+          label: 'Copy Wallet Transfer IN',
           isCredit: true,
-          colorClass: isLightTheme ? 'text-emerald-700 font-extrabold' : 'text-emerald-400',
-          bgClass: isLightTheme ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-emerald-500/10 border-emerald-500/15 text-emerald-400',
-          icon: <ArrowRightLeft size={16} />
+          colorClass: isLightTheme ? 'text-emerald-700' : 'text-emerald-400',
+          bgClass: isLightTheme ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+          icon: <ArrowRightLeft size={17} />
         };
       case 'trade_balance_transfer_out':
       case 'copy_trade_transfer_out':
         return {
-          label: 'Copy Trade Transfer Out',
+          label: 'Copy Wallet Transfer OUT',
           isCredit: false,
-          colorClass: isLightTheme ? 'text-amber-700 font-extrabold' : 'text-amber-400',
-          bgClass: isLightTheme ? 'bg-amber-50 border border-amber-200 text-amber-800' : 'bg-amber-500/10 border-amber-500/15 text-amber-400',
-          icon: <ArrowRightLeft size={16} />
+          colorClass: isLightTheme ? 'text-amber-700' : 'text-amber-400',
+          bgClass: isLightTheme ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+          icon: <ArrowRightLeft size={17} />
         };
       case 'internal_send':
         return {
           label: 'Internal Send',
           isCredit: false,
-          colorClass: isLightTheme ? 'text-amber-700 font-extrabold' : 'text-amber-400',
-          bgClass: isLightTheme ? 'bg-amber-50 border border-amber-200 text-amber-800' : 'bg-amber-500/10 border-amber-500/15 text-amber-400',
-          icon: <Send size={16} />
+          colorClass: isLightTheme ? 'text-amber-700' : 'text-amber-400',
+          bgClass: isLightTheme ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+          icon: <Send size={17} />
         };
       case 'internal_receive':
         return {
           label: 'Internal Receive',
           isCredit: true,
-          colorClass: isLightTheme ? 'text-emerald-700 font-extrabold' : 'text-emerald-400',
-          bgClass: isLightTheme ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-emerald-500/10 border-emerald-500/15 text-emerald-400',
-          icon: <Send size={16} />
+          colorClass: isLightTheme ? 'text-emerald-700' : 'text-emerald-400',
+          bgClass: isLightTheme ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+          icon: <Send size={17} />
         };
       default: {
         const isVoucherType = (type && (type.toLowerCase().includes('voucher') || type.toLowerCase().includes('promo'))) || 
@@ -368,48 +309,20 @@ export default function ActivityLog({ userId, isLightTheme = false }: ActivityLo
           return {
             label: tx?.title || 'Voucher Reward',
             isCredit: true,
-            colorClass: isLightTheme ? 'text-emerald-700 font-extrabold' : 'text-emerald-400',
-            bgClass: isLightTheme ? 'bg-amber-50 border border-amber-200 text-amber-700' : 'bg-amber-500/10 border-amber-500/15 text-amber-400',
-            icon: <Gift size={16} />
+            colorClass: isLightTheme ? 'text-emerald-700' : 'text-emerald-400',
+            bgClass: isLightTheme ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+            icon: <Gift size={17} />
           };
         }
 
         const isBotType = (type && type.toLowerCase().includes('bot')) || (tx?.title && tx.title.toLowerCase().includes('bot'));
         if (isBotType) {
-          const isBotCredit = tx?.isCredit !== undefined 
-            ? tx.isCredit 
-            : (tx?.isWin !== undefined 
-                ? tx.isWin 
-                : (tx?.status === 'WIN') ||
-                  (tx?.paymentMessage && (
-                    tx.paymentMessage.toLowerCase().includes('stopped') || 
-                    tx.paymentMessage.toLowerCase().includes('returned') || 
-                    tx.paymentMessage.toLowerCase().includes('profit') || 
-                    tx.paymentMessage.toLowerCase().includes('harvest')
-                  )));
           return {
             label: tx?.title || 'Auto Bot Trade',
-            isCredit: isBotCredit ? true : false,
-            colorClass: isBotCredit 
-              ? (isLightTheme ? 'text-emerald-700 font-extrabold' : 'text-emerald-400')
-              : (isLightTheme ? 'text-amber-700 font-extrabold' : 'text-amber-400'),
-            bgClass: isBotCredit
-              ? (isLightTheme ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-emerald-500/10 border-emerald-500/15 text-emerald-400')
-              : (isLightTheme ? 'bg-amber-50 border border-amber-200 text-amber-700' : 'bg-amber-500/10 border-amber-500/15 text-amber-400'),
-            icon: <Bot size={16} />
-          };
-        }
-
-        const isUpgradeType = (type && (type.includes('upgrade') || type.includes('rollover'))) ||
-                              (tx?.title && (tx.title.toLowerCase().includes('upgrade') || tx.title.toLowerCase().includes('rollover'))) ||
-                              (tx?.paymentMessage && (tx.paymentMessage.toLowerCase().includes('upgraded copy') || tx.paymentMessage.toLowerCase().includes('rolled over')));
-        if (isUpgradeType) {
-          return {
-            label: tx?.title || 'Expert Contract Upgrade',
-            isCredit: null,
-            colorClass: isLightTheme ? 'text-amber-700 font-extrabold' : 'text-amber-400',
-            bgClass: isLightTheme ? 'bg-amber-50 border border-amber-200 text-amber-700' : 'bg-amber-500/10 border-amber-500/15 text-amber-400',
-            icon: <Sparkles size={16} />
+            isCredit: true,
+            colorClass: isLightTheme ? 'text-emerald-700' : 'text-emerald-400',
+            bgClass: isLightTheme ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+            icon: <Bot size={17} />
           };
         }
 
@@ -419,14 +332,52 @@ export default function ActivityLog({ userId, isLightTheme = false }: ActivityLo
           label: isDeposit ? 'Deposit' : (isCredit ? 'Credit' : 'Withdrawal'),
           isCredit: isCredit,
           colorClass: isCredit 
-            ? (isLightTheme ? 'text-emerald-700 font-extrabold' : 'text-emerald-400') 
-            : (isLightTheme ? 'text-red-700 font-extrabold' : 'text-red-400'),
+            ? (isLightTheme ? 'text-emerald-700' : 'text-emerald-400') 
+            : (isLightTheme ? 'text-red-700' : 'text-red-400'),
           bgClass: isCredit 
-            ? (isLightTheme ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-emerald-500/10 border-emerald-500/15 text-emerald-400') 
-            : (isLightTheme ? 'bg-red-50 border-red-200 text-red-700' : 'bg-red-500/10 border-red-500/15 text-red-400'),
-          icon: isCredit ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />
+            ? (isLightTheme ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20') 
+            : (isLightTheme ? 'bg-red-50 text-red-700 border-red-200' : 'bg-red-500/10 text-red-400 border-red-500/20'),
+          icon: isCredit ? <ArrowDownLeft size={17} /> : <ArrowUpRight size={17} />
         };
       }
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'APPROVED':
+        return (
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold font-mono ${
+            isLightTheme 
+              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
+              : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+          }`}>
+            <CheckCircle2 size={10} className="text-emerald-500" />
+            <span>Success</span>
+          </span>
+        );
+      case 'DECLINED':
+        return (
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold font-mono ${
+            isLightTheme 
+              ? 'bg-red-50 text-red-800 border border-red-200' 
+              : 'bg-red-500/15 text-red-300 border border-red-500/30'
+          }`}>
+            <XCircle size={10} className="text-red-400" />
+            <span>Declined</span>
+          </span>
+        );
+      default:
+        return (
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold font-mono ${
+            isLightTheme 
+              ? 'bg-amber-50 text-amber-800 border border-amber-200' 
+              : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+          }`}>
+            <Clock size={10} className="text-amber-400 animate-pulse" />
+            <span>Pending</span>
+          </span>
+        );
     }
   };
 
@@ -449,185 +400,352 @@ export default function ActivityLog({ userId, isLightTheme = false }: ActivityLo
     });
   };
 
-  return (
-    <div id="activity-log-container" className="space-y-4">
-      {/* Section Header */}
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 select-none">
-        <div className="flex items-center gap-2">
-          <ListFilter size={16} className={isLightTheme ? 'text-amber-500' : 'text-emerald-400'} />
-          <h3 className={`text-xs font-black uppercase tracking-wider ${isLightTheme ? 'text-zinc-600' : 'text-zinc-400'}`}>Transaction Activity Log</h3>
-        </div>
-        
-        {/* Custom Dropdown */}
-        <div id="custom-dropdown-container" className="relative shrink-0 z-50">
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className={`w-full sm:w-auto flex items-center justify-between gap-3 pl-8.5 pr-4 py-2 text-[10px] font-black uppercase border rounded-xl focus:outline-none transition-all min-w-[170px] cursor-pointer ${
-              isLightTheme 
-                ? 'bg-white border-zinc-200 text-zinc-700 hover:text-amber-650 hover:border-amber-300 focus:ring-1 focus:ring-amber-500/30' 
-                : 'bg-slate-950 border-slate-850 text-zinc-300 hover:text-emerald-400 hover:border-slate-750 focus:ring-1 focus:ring-emerald-500/30'
-            }`}
-          >
-            <Filter size={11} className="absolute left-3.5 text-zinc-400" />
-            <span>
-              {FILTER_OPTIONS.find(opt => opt.value === filter)?.label || 'All Transactions'}
-            </span>
-            <ChevronDown 
-              size={11} 
-              className={`text-zinc-400 transition-transform duration-200 ${isOpen ? 'rotate-180 text-emerald-400' : ''}`} 
-            />
-          </button>
+  // Filter and search computation
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter(tx => {
+      const isVoucher = tx.type === 'voucher_reward' || tx.type === 'voucher' || tx.type === 'promo_voucher' || tx.type?.toLowerCase?.().includes('voucher') || (tx.title && tx.title.toLowerCase().includes('voucher'));
+      const isDeposit = tx.type.startsWith('deposit');
+      const isUpgrade = tx.type === 'copy_trade_upgrade' || 
+                        (tx.title && (tx.title.toLowerCase().includes('upgrade') || tx.title.toLowerCase().includes('rollover'))) ||
+                        (tx.paymentMessage && (tx.paymentMessage.toLowerCase().includes('upgraded copy') || tx.paymentMessage.toLowerCase().includes('rolled over')));
+      const isWithdrawal = tx.type.startsWith('withdraw') && !isUpgrade;
+      const isBuy = tx.type === 'buy_crypto';
+      const isSell = tx.type === 'sell_crypto';
+      const isSwap = tx.type === 'swap_crypto';
+      const isReferral = tx.type === 'referral_reward' || tx.type === 'first_deposit_commission' || tx.type === 'welcome_bonus';
+      const isInvestment = tx.type === 'invested' || tx.type === 'investment_earning';
+      const isBot = tx.type === 'Auto Bot trade' || tx.type === 'bot_harvest' || tx.type === 'bot_trade' || tx.type === 'bot' || tx.type?.toLowerCase?.().includes('bot') || (tx.title && tx.title.toLowerCase().includes('bot'));
+      const isCopyTrade = tx.type?.startsWith('copy_trade') || tx.type?.includes('copy_trade') || isUpgrade;
+      const isTransfer = tx.type?.includes('transfer') || tx.type?.includes('internal');
 
-          {isOpen && (
-            <div className={`absolute right-0 mt-1.5 w-full sm:w-[170px] border rounded-xl shadow-xl overflow-hidden divide-y animate-fade-in ${
-              isLightTheme ? 'bg-white border-zinc-200 divide-zinc-100' : 'bg-slate-950 border-slate-850 divide-slate-900/60'
-            }`}>
-              {FILTER_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => {
-                    setFilter(opt.value);
-                    setIsOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2.5 text-[10px] font-black uppercase transition-all flex items-center justify-between cursor-pointer ${
-                    filter === opt.value
-                      ? (isLightTheme ? 'bg-amber-50 text-amber-600 font-extrabold' : 'bg-slate-900/80 text-emerald-400 font-extrabold')
-                      : (isLightTheme ? 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-800' : 'text-zinc-400 hover:bg-slate-900 hover:text-zinc-200')
-                  }`}
-                >
-                  <span>{opt.label}</span>
-                  {filter === opt.value && (
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isLightTheme ? 'bg-amber-500' : 'bg-emerald-400'}`} />
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
+      let matchesCategory = true;
+      if (activeFilter === 'deposits') matchesCategory = isDeposit;
+      else if (activeFilter === 'withdrawals') matchesCategory = isWithdrawal && !isBot && !isVoucher && !isUpgrade;
+      else if (activeFilter === 'copy') matchesCategory = isCopyTrade || isInvestment;
+      else if (activeFilter === 'bot') matchesCategory = isBot;
+      else if (activeFilter === 'rewards') matchesCategory = isReferral || isVoucher;
+      else if (activeFilter === 'buysell') matchesCategory = isBuy || isSell || isSwap;
+      else if (activeFilter === 'transfers') matchesCategory = isTransfer;
+
+      if (!matchesCategory) return false;
+
+      // Text search
+      if (searchQuery.trim()) {
+        const queryLower = searchQuery.toLowerCase().trim();
+        const idMatch = tx.id.toLowerCase().includes(queryLower);
+        const titleMatch = (tx.title || '').toLowerCase().includes(queryLower);
+        const typeMatch = tx.type.toLowerCase().includes(queryLower);
+        const merchantMatch = (tx.merchantName || '').toLowerCase().includes(queryLower);
+        const networkMatch = (tx.network || '').toLowerCase().includes(queryLower);
+        const msgMatch = (tx.paymentMessage || '').toLowerCase().includes(queryLower);
+        const amountMatch = String(tx.amount).includes(queryLower);
+
+        return idMatch || titleMatch || typeMatch || merchantMatch || networkMatch || msgMatch || amountMatch;
+      }
+
+      return true;
+    });
+  }, [transactions, activeFilter, searchQuery]);
+
+  return (
+    <div id="activity-log-page" className="space-y-3 max-w-4xl mx-auto pb-6">
+      {/* Interactive Search & Category Ribbon */}
+      <div className="space-y-2.5">
+        {/* Search input with refresh action */}
+        <div className="flex items-center gap-2">
+          <div className={`relative flex-1 flex items-center rounded-xl border transition-all ${
+            isLightTheme 
+              ? 'bg-white border-zinc-200 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/10 shadow-2xs' 
+              : 'bg-[#0d1411] border-zinc-800 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500/20'
+          }`}>
+            <Search size={15} className="absolute left-3.5 text-zinc-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search by Transaction ID, method, pair, or merchant..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={`w-full bg-transparent pl-10 pr-9 py-2.5 text-xs font-medium outline-none ${
+                isLightTheme ? 'text-zinc-900 placeholder:text-zinc-400' : 'text-white placeholder:text-zinc-500'
+              }`}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 p-1 rounded-md text-zinc-400 hover:text-zinc-600 dark:hover:text-white cursor-pointer"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsRefreshing(true)}
+            className={`p-2.5 rounded-xl border transition-all cursor-pointer shrink-0 ${
+              isLightTheme 
+                ? 'bg-white hover:bg-zinc-50 border-zinc-200 text-zinc-600' 
+                : 'bg-[#0d1411] hover:bg-white/[0.04] border-zinc-800 text-zinc-400 hover:text-white'
+            }`}
+            title="Refresh history"
+          >
+            <RefreshCw size={15} className={isRefreshing ? 'animate-spin text-emerald-500' : ''} />
+          </button>
+        </div>
+
+        {/* Scrollable Filter Chips */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          {FILTER_PILLS.map((pill) => {
+            const isSelected = activeFilter === pill.id;
+            return (
+              <button
+                key={pill.id}
+                type="button"
+                onClick={() => setActiveFilter(pill.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 select-none ${
+                  isSelected
+                    ? 'bg-[#008B47] text-white shadow-xs'
+                    : isLightTheme
+                    ? 'bg-white border border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:border-zinc-300'
+                    : 'bg-[#0d1411] border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
+                }`}
+              >
+                {pill.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Main Container */}
-      <div className={`border rounded-2xl overflow-hidden divide-y ${
-        isLightTheme 
-          ? 'bg-white border-zinc-200/80 divide-zinc-100 shadow-sm' 
-          : 'bg-slate-800/60 border-slate-750 divide-slate-800'
-      }`}>
+      {/* 3. Transaction Ledger Stream */}
+      <div className="space-y-2.5">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-10 gap-3 select-none">
-            <RefreshCw size={20} className={`${isLightTheme ? 'text-amber-500' : 'text-emerald-500'} animate-spin`} />
-            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Retrieving transaction logs...</span>
+          <div className={`p-12 rounded-2xl border text-center select-none flex flex-col items-center justify-center gap-3 ${
+            isLightTheme ? 'bg-white border-zinc-200' : 'bg-[#0d1411] border-zinc-800'
+          }`}>
+            <RefreshCw size={22} className="text-emerald-500 animate-spin" />
+            <span className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Syncing Ledger...</span>
           </div>
         ) : error ? (
-          <div className="p-6 text-center text-red-400 text-xs font-semibold select-none">
+          <div className="p-6 rounded-2xl border border-red-500/30 bg-red-500/10 text-red-400 text-xs font-semibold text-center select-none">
             {error}
           </div>
         ) : filteredTransactions.length === 0 ? (
-          <div className="p-8 text-center select-none flex flex-col items-center justify-center gap-2">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${
-              isLightTheme ? 'bg-zinc-50 text-zinc-400 border-zinc-200' : 'bg-slate-950 text-zinc-500 border-slate-850'
+          <div className={`p-10 rounded-2xl border text-center select-none flex flex-col items-center justify-center gap-2.5 ${
+            isLightTheme ? 'bg-white border-zinc-200' : 'bg-[#0d1411] border-zinc-800'
+          }`}>
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${
+              isLightTheme ? 'bg-zinc-50 text-zinc-400 border-zinc-200' : 'bg-white/[0.03] text-zinc-500 border-white/10'
             }`}>
-              <Calendar size={16} />
+              <Calendar size={20} />
             </div>
-            <p className="text-xs text-zinc-500 font-semibold mt-1">No transaction activity found</p>
-            <p className="text-[10px] text-zinc-600 max-w-[240px] mx-auto leading-relaxed">
-              Your transactions will appear here as soon as they are recorded or processed.
+            <h4 className="text-xs font-bold text-zinc-400 mt-1 uppercase tracking-wider">No Activity Recorded</h4>
+            <p className={`text-xs max-w-sm mx-auto leading-relaxed ${isLightTheme ? 'text-zinc-500' : 'text-zinc-400'}`}>
+              {searchQuery || activeFilter !== 'all'
+                ? 'No transactions match your current search or category filter.'
+                : 'Your transactions, payouts, and deposit settlements will appear here as soon as they execute.'}
             </p>
+            {(searchQuery || activeFilter !== 'all') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setActiveFilter('all');
+                }}
+                className="mt-2 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/10 transition-all cursor-pointer"
+              >
+                Reset Filters
+              </button>
+            )}
           </div>
         ) : (
-          filteredTransactions.map(tx => {
+          filteredTransactions.map((tx) => {
             const info = getTxTypeInfo(tx.type, tx);
             const isExpanded = expandedId === tx.id;
+            const isCopied = copiedId === tx.id;
 
             return (
-              <div 
+              <div
                 key={tx.id}
-                id={`activity-log-item-${tx.id}`}
-                className={`transition-all ${
-                  isLightTheme ? 'hover:bg-zinc-50/50' : 'hover:bg-slate-800/40'
+                id={`activity-card-${tx.id}`}
+                className={`rounded-2xl border transition-all overflow-hidden ${
+                  isLightTheme 
+                    ? 'bg-white border-zinc-200/90 hover:border-emerald-300/80 shadow-2xs' 
+                    : 'bg-[#0d1411] border-zinc-800/90 hover:border-zinc-700'
                 }`}
               >
-                {/* Summary Row */}
-                <div 
+                {/* Main Card Summary Click Area */}
+                <div
                   onClick={() => setExpandedId(isExpanded ? null : tx.id)}
-                  className="flex justify-between items-center p-4 cursor-pointer select-none"
+                  className="p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer select-none"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${info.bgClass}`}>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${info.bgClass}`}>
                       {info.icon}
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className={`font-extrabold text-xs ${isLightTheme ? 'text-zinc-800' : 'text-zinc-200'}`}>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`text-xs sm:text-sm font-bold truncate ${isLightTheme ? 'text-zinc-900' : 'text-white'}`}>
                           {info.label}
                         </span>
-                        <span className={`text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded ${getStatusBadgeClass(tx.status)}`}>
-                          {tx.status}
-                        </span>
+                        {getStatusBadge(tx.status)}
                       </div>
-                      <span className="text-[9px] text-zinc-500 font-semibold block mt-1 font-mono">
-                        {formatDate(tx.createdAt)}
-                      </span>
+                      <div className="flex items-center gap-1.5 text-[10px] font-mono text-zinc-400 mt-0.5">
+                        <Clock size={10} className="shrink-0" />
+                        <span>{formatDate(tx.createdAt)}</span>
+                        {tx.network && (
+                          <>
+                            <span>•</span>
+                            <span className="font-bold uppercase text-zinc-500">{tx.network}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2.5">
-                    <div className="text-right">
-                      <span className={`text-xs font-black font-mono ${info.colorClass}`}>
+                  <div className="flex items-center gap-2.5 shrink-0 text-right">
+                    <div>
+                      <div className={`text-xs sm:text-sm font-bold font-mono ${info.colorClass}`}>
                         {info.isCredit === true ? '+' : info.isCredit === false ? '-' : ''}${tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
+                      </div>
                       {tx.localAmount && (
-                        <span className="block text-[9px] font-bold text-zinc-500 font-mono mt-0.5">
+                        <div className="text-[10px] font-mono text-zinc-400 mt-0.5">
                           {tx.localAmount.toLocaleString()} Shs
-                        </span>
+                        </div>
                       )}
                     </div>
-                    <div className="text-zinc-500">
-                      {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    <div className="p-1 text-zinc-400">
+                      {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                     </div>
                   </div>
                 </div>
 
-                {/* Expanded Details Panel */}
+                {/* Expandable Audit Trail Drawer */}
                 {isExpanded && (
-                  <div className={`px-4 pb-4 pt-1 text-[10px] space-y-2 border-t select-all animate-fade-in ${
-                    isLightTheme ? 'bg-zinc-50/50 border-zinc-100' : 'bg-slate-950/50 border-slate-900/40'
+                  <div className={`p-4 pt-3 border-t text-xs space-y-3 animate-fade-in ${
+                    isLightTheme ? 'bg-zinc-50/70 border-zinc-100' : 'bg-black/30 border-white/5'
                   }`}>
-                    <div className="grid grid-cols-2 gap-y-2 gap-x-4 py-1.5">
-                      <div>
-                        <span className={`${isLightTheme ? 'text-zinc-400' : 'text-zinc-600'} font-bold block uppercase tracking-wider text-[8px]`}>Transaction ID</span>
-                        <span className={`font-mono font-medium ${isLightTheme ? 'text-zinc-600' : 'text-zinc-300'}`}>{tx.id}</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {/* Transaction ID */}
+                      <div className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 ${
+                        isLightTheme ? 'bg-white border-zinc-200' : 'bg-white/[0.02] border-white/10'
+                      }`}>
+                        <div className="min-w-0">
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 block font-mono">
+                            Transaction Reference
+                          </span>
+                          <span className={`font-mono text-xs font-semibold truncate block ${
+                            isLightTheme ? 'text-zinc-800' : 'text-zinc-200'
+                          }`}>
+                            {tx.id}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopy(tx.id, tx.id);
+                          }}
+                          className={`p-1.5 rounded-lg border transition-all cursor-pointer shrink-0 ${
+                            isCopied 
+                              ? 'bg-emerald-500 text-white border-emerald-500' 
+                              : isLightTheme ? 'bg-zinc-50 hover:bg-zinc-100 border-zinc-200 text-zinc-600' : 'bg-white/5 hover:bg-white/10 border-white/10 text-zinc-300'
+                          }`}
+                          title="Copy Transaction ID"
+                        >
+                          {isCopied ? <Check size={12} /> : <Copy size={12} />}
+                        </button>
                       </div>
-                      <div>
-                        <span className={`${isLightTheme ? 'text-zinc-400' : 'text-zinc-600'} font-bold block uppercase tracking-wider text-[8px]`}>Method / Type</span>
-                        <span className={`font-semibold capitalize ${isLightTheme ? 'text-zinc-600' : 'text-zinc-300'}`}>
-                          {tx.type === 'copy_trade_upgrade' ? 'Expert Contract Upgrade' : tx.type.split('_').join(' ')}
+
+                      {/* Method / Type */}
+                      <div className={`p-2.5 rounded-xl border ${
+                        isLightTheme ? 'bg-white border-zinc-200' : 'bg-white/[0.02] border-white/10'
+                      }`}>
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 block font-mono">
+                          Operation Type
+                        </span>
+                        <span className={`font-mono text-xs font-semibold capitalize mt-0.5 block ${
+                          isLightTheme ? 'text-zinc-800' : 'text-zinc-200'
+                        }`}>
+                          {tx.type === 'copy_trade_upgrade' ? 'Contract Rollover' : tx.type.split('_').join(' ')}
                         </span>
                       </div>
+
+                      {/* Blockchain Network */}
                       {tx.network && (
-                        <div>
-                          <span className={`${isLightTheme ? 'text-zinc-400' : 'text-zinc-600'} font-bold block uppercase tracking-wider text-[8px]`}>Blockchain Network</span>
-                          <span className={`font-extrabold font-mono ${isLightTheme ? 'text-zinc-600' : 'text-zinc-300'}`}>{tx.network}</span>
-                        </div>
-                      )}
-                      {tx.address && (
-                        <div>
-                          <span className={`${isLightTheme ? 'text-zinc-400' : 'text-zinc-600'} font-bold block uppercase tracking-wider text-[8px]`}>Destination Address</span>
-                          <span className={`font-semibold font-mono break-all ${isLightTheme ? 'text-zinc-600' : 'text-zinc-300'}`}>{tx.address}</span>
-                        </div>
-                      )}
-                      {tx.merchantName && (
-                        <div>
-                          <span className={`${isLightTheme ? 'text-zinc-400' : 'text-zinc-600'} font-bold block uppercase tracking-wider text-[8px]`}>
-                            {tx.type === 'deposit_p2p' || tx.type === 'withdraw_p2p' ? 'P2P Merchant' : 'Crypto Asset'}
+                        <div className={`p-2.5 rounded-xl border ${
+                          isLightTheme ? 'bg-white border-zinc-200' : 'bg-white/[0.02] border-white/10'
+                        }`}>
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 block font-mono">
+                            Network / Protocol
                           </span>
-                          <span className={`font-bold ${isLightTheme ? 'text-zinc-700' : 'text-zinc-300'}`}>{tx.merchantName}</span>
+                          <span className={`font-mono text-xs font-bold uppercase mt-0.5 block ${
+                            isLightTheme ? 'text-zinc-800' : 'text-zinc-200'
+                          }`}>
+                            {tx.network}
+                          </span>
                         </div>
                       )}
+
+                      {/* Merchant or Pair */}
+                      {tx.merchantName && (
+                        <div className={`p-2.5 rounded-xl border ${
+                          isLightTheme ? 'bg-white border-zinc-200' : 'bg-white/[0.02] border-white/10'
+                        }`}>
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 block font-mono">
+                            Counterparty / Merchant
+                          </span>
+                          <span className={`font-mono text-xs font-semibold mt-0.5 block ${
+                            isLightTheme ? 'text-zinc-800' : 'text-zinc-200'
+                          }`}>
+                            {tx.merchantName}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Address */}
+                      {tx.address && (
+                        <div className={`col-span-1 sm:col-span-2 p-2.5 rounded-xl border flex items-center justify-between gap-2 ${
+                          isLightTheme ? 'bg-white border-zinc-200' : 'bg-white/[0.02] border-white/10'
+                        }`}>
+                          <div className="min-w-0">
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 block font-mono">
+                              Settlement Address
+                            </span>
+                            <span className={`font-mono text-[11px] font-medium break-all block ${
+                              isLightTheme ? 'text-zinc-700' : 'text-zinc-300'
+                            }`}>
+                              {tx.address}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopy(tx.address!, `${tx.id}-addr`);
+                            }}
+                            className={`p-1.5 rounded-lg border transition-all cursor-pointer shrink-0 ${
+                              copiedId === `${tx.id}-addr` 
+                                ? 'bg-emerald-500 text-white border-emerald-500' 
+                                : isLightTheme ? 'bg-zinc-50 hover:bg-zinc-100 border-zinc-200 text-zinc-600' : 'bg-white/5 hover:bg-white/10 border-white/10 text-zinc-300'
+                            }`}
+                            title="Copy Address"
+                          >
+                            {copiedId === `${tx.id}-addr` ? <Check size={12} /> : <Copy size={12} />}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Payment Message / Memo */}
                       {tx.paymentMessage && (
-                        <div className="col-span-2 mt-1">
-                          <span className={`${isLightTheme ? 'text-zinc-400' : 'text-zinc-600'} font-bold block uppercase tracking-wider text-[8px]`}>Payment Information / Notes</span>
-                          <p className={`font-medium leading-relaxed p-2 rounded-lg border mt-1 ${
-                            isLightTheme ? 'bg-white border-zinc-200/80 text-zinc-600' : 'bg-slate-900/80 border-slate-800/40 text-zinc-300'
+                        <div className={`col-span-1 sm:col-span-2 p-2.5 rounded-xl border ${
+                          isLightTheme ? 'bg-white border-zinc-200' : 'bg-white/[0.02] border-white/10'
+                        }`}>
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 block font-mono">
+                            Audit Notes & System Memo
+                          </span>
+                          <p className={`text-[11px] leading-relaxed mt-1 ${
+                            isLightTheme ? 'text-zinc-600' : 'text-zinc-300'
                           }`}>
                             {tx.paymentMessage}
                           </p>

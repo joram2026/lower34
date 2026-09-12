@@ -10,9 +10,9 @@ import {
   updatePassword
 } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, getDoc, collection, query, where, getDocs, updateDoc, increment, addDoc, deleteDoc } from 'firebase/firestore';
-import { Shield, Mail, Lock, User, Phone, Sparkles, AlertCircle, RefreshCw, Eye, EyeOff, Globe, ChevronDown, Check, TrendingUp, Zap, Award, ArrowUpRight, Activity, DollarSign, Users, Percent, CheckCircle, ArrowLeft, KeyRound, CheckCheck, Headphones, Handshake } from 'lucide-react';
+import { Shield, Mail, Lock, User, Phone, Sparkles, AlertCircle, RefreshCw, Eye, EyeOff, Globe, ChevronDown, Check, TrendingUp, Zap, Award, ArrowUpRight, Activity, DollarSign, Users, Percent, CheckCircle, ArrowLeft, KeyRound, CheckCheck, LifeBuoy, Handshake } from 'lucide-react';
 import { validateEmailAddress } from '../utils/emailValidation';
-import { sendEmailOtp, verifyEmailOtp } from '../utils/otpService';
+import { sendEmailOtp, verifyEmailOtp, retrieveActiveOtp } from '../utils/otpService';
 
 interface AuthPageProps {
   onSuccess: () => void;
@@ -48,6 +48,10 @@ export default function AuthPage({ onSuccess, path, navigate }: AuthPageProps) {
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
+  const [otpPreviewCode, setOtpPreviewCode] = useState<string | null>(null);
+  const [isResendSandbox, setIsResendSandbox] = useState<boolean>(false);
+  const [isRetrievingOtp, setIsRetrievingOtp] = useState<boolean>(false);
+  const [showDeliveryTips, setShowDeliveryTips] = useState<boolean>(false);
 
   const COUNTRIES = [
     { code: 'Kenya', name: 'Kenya', flag: '🇰🇪', dialCode: '+254' },
@@ -231,14 +235,41 @@ export default function AuthPage({ onSuccess, path, navigate }: AuthPageProps) {
     setLoading(true);
     setError(null);
     try {
-      await sendEmailOtp(formattedEmail, displayName.trim());
+      const otpRes = await sendEmailOtp(formattedEmail, displayName.trim());
 
       setResendCooldown(45);
-      setSuccessMsg('A new verification code has been dispatched to your email.');
+      if (otpRes.previewCode) {
+        setOtpPreviewCode(otpRes.previewCode);
+      }
+      setIsResendSandbox(Boolean(otpRes.resendSandbox));
+      setSuccessMsg(otpRes.message || 'A new verification code has been dispatched to your email.');
     } catch (err: any) {
       setError(err.message || 'Failed to resend verification code.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Auto-retrieve active code from Firestore persistence if email is delayed/filtered
+  const handleAutoRetrieveCode = async () => {
+    if (isRetrievingOtp) return;
+    setIsRetrievingOtp(true);
+    setError(null);
+    try {
+      const activeCode = await retrieveActiveOtp(email);
+      if (activeCode && activeCode.length === 6) {
+        const digits = activeCode.split('');
+        setOtpDigits(digits);
+        setOtpPreviewCode(activeCode);
+        setSuccessMsg('Active verification code retrieved! Click "Verify & Create Account" to finish.');
+        otpInputRefs.current[5]?.focus();
+      } else {
+        setError('No active passcode found or it may have expired. Please click "Resend Verification Code".');
+      }
+    } catch (err: any) {
+      setError('Unable to fetch verification code. Please check your spam folder or request a new code.');
+    } finally {
+      setIsRetrievingOtp(false);
     }
   };
 
@@ -503,12 +534,18 @@ export default function AuthPage({ onSuccess, path, navigate }: AuthPageProps) {
         }
 
         // Request 6-digit OTP verification code
-        await sendEmailOtp(formattedEmail, displayName.trim());
+        const otpRes = await sendEmailOtp(formattedEmail, displayName.trim());
 
         setResendCooldown(45);
         setSignUpStep('otp');
         setOtpDigits(['', '', '', '', '', '']);
-        setSuccessMsg(`Verification code sent to ${formattedEmail}`);
+        if (otpRes.previewCode) {
+          setOtpPreviewCode(otpRes.previewCode);
+        } else {
+          setOtpPreviewCode(null);
+        }
+        setIsResendSandbox(Boolean(otpRes.resendSandbox));
+        setSuccessMsg(otpRes.message || `Verification code sent to ${formattedEmail}`);
         setTimeout(() => {
           otpInputRefs.current[0]?.focus();
         }, 100);
@@ -613,149 +650,160 @@ export default function AuthPage({ onSuccess, path, navigate }: AuthPageProps) {
   };
 
   return (
-    <div id="auth-page-container" className="min-h-screen bg-gradient-to-br from-[#EBF9F0] via-[#F4FBF6] to-[#E2F7E9] text-zinc-900 font-sans relative overflow-hidden flex flex-col justify-center items-center py-8 px-4 sm:py-12">
+    <div id="auth-page-container" className="min-h-screen bg-gradient-to-b from-[#F8FAFC] via-[#F1F5F9] to-[#EBF4EE] text-zinc-900 font-sans relative overflow-hidden flex flex-col justify-center items-center py-10 px-4 sm:py-14">
       <style>{`
-        @keyframes float-slow {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-16px) rotate(4deg); }
+        @keyframes float-gentle {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-7px); }
         }
-        .animate-float-slow {
-          animation: float-slow 9s ease-in-out infinite;
+        .animate-float-gentle {
+          animation: float-gentle 7s ease-in-out infinite;
         }
-        @keyframes float-fast {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-10px) rotate(-4deg); }
+        @keyframes ticker-scroll {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
         }
-        .animate-float-fast {
-          animation: float-fast 6s ease-in-out infinite;
-        }
-        @keyframes drift-up {
-          0% { transform: translateY(0px) scale(0.96); opacity: 0.25; }
-          50% { transform: translateY(-12px) scale(1.02); opacity: 0.45; }
-          100% { transform: translateY(0px) scale(0.96); opacity: 0.25; }
-        }
-        .animate-drift-up {
-          animation: drift-up 7s ease-in-out infinite;
+        .animate-ticker-tape {
+          display: inline-flex;
+          white-space: nowrap;
+          animation: ticker-scroll 38s linear infinite;
         }
       `}</style>
 
-      {/* 1. Subtle High-Tech Background Decor */}
+      {/* Top Institutional Market Ticker Tape */}
+      <div className="absolute top-0 inset-x-0 h-9 bg-white/80 backdrop-blur-md border-b border-slate-200/80 z-20 flex items-center overflow-hidden text-[11px] font-mono select-none">
+        <div className="flex items-center gap-2 px-3 shrink-0 bg-emerald-50/90 border-r border-slate-200/80 h-full text-[#007038] font-bold z-10 shadow-xs">
+          <span className="w-2 h-2 rounded-full bg-[#008B47] animate-ping inline-block" />
+          <span className="tracking-wider text-[10px] uppercase">CME GLOBEX</span>
+        </div>
+        <div className="animate-ticker-tape flex items-center gap-6 px-4 text-slate-600 font-medium">
+          <span className="flex items-center gap-1.5"><strong className="text-slate-900">BTC/USD</strong> $91,480.00 <span className="text-emerald-600 font-semibold">+3.14%</span></span>
+          <span className="text-slate-300">•</span>
+          <span className="flex items-center gap-1.5"><strong className="text-slate-900">ETH/USD</strong> $3,425.20 <span className="text-emerald-600 font-semibold">+2.81%</span></span>
+          <span className="text-slate-300">•</span>
+          <span className="flex items-center gap-1.5"><strong className="text-slate-900">EUR/USD</strong> 1.0845 <span className="text-emerald-600 font-semibold">+0.18%</span></span>
+          <span className="text-slate-300">•</span>
+          <span className="flex items-center gap-1.5"><strong className="text-slate-900">SOL/USD</strong> $194.50 <span className="text-emerald-600 font-semibold">+4.72%</span></span>
+          <span className="text-slate-300">•</span>
+          <span className="flex items-center gap-1.5"><strong className="text-slate-900">GOLD</strong> $2,746.80 <span className="text-emerald-600 font-semibold">+0.45%</span></span>
+          <span className="text-slate-300">•</span>
+          <span className="flex items-center gap-1.5"><strong className="text-slate-900">S&P 500 E-MINI</strong> 5,872.25 <span className="text-emerald-600 font-semibold">+0.82%</span></span>
+          <span className="text-slate-300">•</span>
+          <span className="flex items-center gap-1.5"><strong className="text-slate-900">TREASURY 10Y</strong> 4.28% <span className="text-slate-500 font-semibold">-0.02%</span></span>
+          <span className="text-slate-300">•</span>
+          {/* Duplicate set for seamless looping */}
+          <span className="flex items-center gap-1.5"><strong className="text-slate-900">BTC/USD</strong> $91,480.00 <span className="text-emerald-600 font-semibold">+3.14%</span></span>
+          <span className="text-slate-300">•</span>
+          <span className="flex items-center gap-1.5"><strong className="text-slate-900">ETH/USD</strong> $3,425.20 <span className="text-emerald-600 font-semibold">+2.81%</span></span>
+          <span className="text-slate-300">•</span>
+          <span className="flex items-center gap-1.5"><strong className="text-slate-900">EUR/USD</strong> 1.0845 <span className="text-emerald-600 font-semibold">+0.18%</span></span>
+          <span className="text-slate-300">•</span>
+          <span className="flex items-center gap-1.5"><strong className="text-slate-900">SOL/USD</strong> $194.50 <span className="text-emerald-600 font-semibold">+4.72%</span></span>
+          <span className="text-slate-300">•</span>
+          <span className="flex items-center gap-1.5"><strong className="text-slate-900">GOLD</strong> $2,746.80 <span className="text-emerald-600 font-semibold">+0.45%</span></span>
+        </div>
+      </div>
+
+      {/* Modern Institutional Terminal Background Decor */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0">
-        {/* Ambient Sprite Glows */}
-        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[650px] h-[450px] bg-gradient-to-b from-[#008B47]/15 via-[#80D824]/10 to-transparent rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-36 -left-20 w-[450px] h-[450px] bg-[#008B47]/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute top-1/3 -right-24 w-[400px] h-[400px] bg-[#F4E100]/12 rounded-full blur-3xl pointer-events-none" />
+        {/* Soft Ambient Mesh Glows */}
+        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[720px] h-[480px] bg-gradient-to-b from-emerald-500/12 via-teal-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-32 -left-20 w-[480px] h-[480px] bg-gradient-to-tr from-[#008B47]/10 via-emerald-400/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/4 -right-20 w-[420px] h-[420px] bg-amber-400/6 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Micro-Security Pattern / Lattice Grid */}
-        <div className="absolute inset-0 bg-[radial-gradient(#008B47_0.7px,transparent_0.7px)] [background-size:24px_24px] opacity-[0.06]" />
+        {/* High-Precision Matrix Dot Grid */}
+        <div className="absolute inset-0 bg-[radial-gradient(#64748b_0.75px,transparent_0.75px)] [background-size:28px_28px] opacity-[0.09]" />
 
-        {/* Geometric Security Curve Watermarks */}
-        <svg className="absolute -top-10 -left-10 w-96 h-96 opacity-[0.07] text-[#008B47]" viewBox="0 0 200 200" fill="none">
-          <circle cx="100" cy="100" r="80" stroke="currentColor" strokeWidth="1" strokeDasharray="3 3" />
-          <circle cx="100" cy="100" r="60" stroke="currentColor" strokeWidth="1.5" />
-          <circle cx="100" cy="100" r="40" stroke="currentColor" strokeWidth="0.75" />
-          <path d="M20,100 Q60,20 100,100 T180,100" stroke="currentColor" strokeWidth="1" />
-          <path d="M20,100 Q60,180 100,100 T180,100" stroke="currentColor" strokeWidth="1" />
-          <path d="M100,20 Q20,60 100,100 T100,180" stroke="currentColor" strokeWidth="1" />
-          <path d="M100,20 Q180,60 100,100 T100,180" stroke="currentColor" strokeWidth="1" />
-        </svg>
+        {/* Geometric Coordinate Watermarks & Crosshairs */}
+        <div className="absolute top-16 left-1/4 text-slate-400/60 font-mono text-[9px] hidden lg:block tracking-wider">
+          + 41.8781° N / 87.6298° W [CME-CHI]
+        </div>
+        <div className="absolute bottom-20 right-1/4 text-slate-400/60 font-mono text-[9px] hidden lg:block tracking-wider">
+          + SECURE CHANNEL [TLS 1.3 / AES-256]
+        </div>
 
-        <svg className="absolute -bottom-16 -right-16 w-[28rem] h-[28rem] opacity-[0.06] text-[#008B47]" viewBox="0 0 200 200" fill="none">
-          <circle cx="100" cy="100" r="90" stroke="currentColor" strokeWidth="1.5" />
-          <circle cx="100" cy="100" r="70" stroke="currentColor" strokeWidth="1" strokeDasharray="4 2" />
-          <circle cx="100" cy="100" r="50" stroke="currentColor" strokeWidth="1.5" />
-          <polygon points="100,15 125,75 190,75 137,115 158,175 100,140 42,175 63,115 10,75 75,75" stroke="currentColor" strokeWidth="0.8" />
-        </svg>
+        {/* Subtle Market Depth Horizon Wave */}
+        <div className="absolute bottom-0 inset-x-0 h-48 opacity-25 pointer-events-none">
+          <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 1200 200" fill="none">
+            <defs>
+              <linearGradient id="horizonGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#008B47" stopOpacity="0.25" />
+                <stop offset="100%" stopColor="#008B47" stopOpacity="0.0" />
+              </linearGradient>
+            </defs>
+            <path d="M0,165 Q200,145 400,115 T800,85 T1100,45 L1200,35 L1200,200 L0,200 Z" fill="url(#horizonGradient)" />
+            <path d="M0,165 Q200,145 400,115 T800,85 T1100,45 L1200,35" stroke="#008B47" strokeWidth="1.2" strokeOpacity="0.4" />
+            <path d="M0,185 Q250,165 520,145 T980,95 L1200,75" stroke="#10b981" strokeWidth="0.9" strokeDasharray="4 4" strokeOpacity="0.3" />
+          </svg>
+        </div>
 
-        {/* Floating Reserve Badge (Top Left) */}
-        <div className="absolute top-[12%] left-[3%] lg:left-[8%] opacity-35 hidden sm:block animate-float-slow">
-          <div className="w-44 h-24 rounded-2xl bg-gradient-to-br from-white to-emerald-50/90 border border-emerald-200 p-2.5 shadow-lg shadow-emerald-900/5 rotate-[-8deg] backdrop-blur-xs flex flex-col justify-between">
-            <div className="flex justify-between items-center text-emerald-800">
-              <span className="font-mono font-black text-xs">CME</span>
-              <span className="text-[9px] font-bold tracking-widest uppercase">LIQUIDITY VAULT</span>
-              <span className="font-mono font-black text-xs">A+</span>
+        {/* Institutional Side Panel: Live CME Globex Matching (Top Left) */}
+        <div className="absolute top-20 left-6 lg:left-12 opacity-85 hidden xl:block animate-float-gentle pointer-events-none">
+          <div className="w-54 rounded-2xl bg-white/85 backdrop-blur-md border border-slate-200/90 p-3.5 shadow-sm space-y-2">
+            <div className="flex items-center justify-between text-[10px] font-mono">
+              <span className="flex items-center gap-1.5 text-emerald-700 font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                CME MATCHING
+              </span>
+              <span className="text-slate-400 font-semibold font-mono">1.1ms</span>
             </div>
-            <div className="flex items-center justify-center">
-              <div className="w-9 h-9 rounded-full border border-emerald-400 bg-emerald-100/60 flex items-center justify-center text-[#008B47] font-bold text-sm font-serif">
-                $
-              </div>
+            <div className="text-xs font-bold text-slate-800 flex justify-between items-baseline font-mono">
+              <span>BTC/USD</span>
+              <span className="text-[#007038] font-bold">$91,480.00</span>
             </div>
-            <div className="flex justify-between items-center text-[8px] font-mono text-emerald-700 font-semibold">
-              <span>SERIES 2026</span>
-              <span>SECURED RESERVE</span>
+            <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-[#008B47] to-emerald-400 w-3/4 rounded-full" />
+            </div>
+            <div className="flex justify-between text-[9px] text-slate-400 font-mono">
+              <span>24h Vol: $4.82B</span>
+              <span className="text-emerald-600 font-bold">+3.14%</span>
             </div>
           </div>
         </div>
 
-        {/* Floating Treasury Card (Bottom Right) */}
-        <div className="absolute bottom-[14%] right-[3%] lg:right-[8%] opacity-35 hidden sm:block animate-float-fast">
-          <div className="w-44 h-24 rounded-2xl bg-gradient-to-br from-white to-[#F4FBF6] border border-emerald-200 p-2.5 shadow-lg shadow-emerald-900/5 rotate-[10deg] backdrop-blur-xs flex flex-col justify-between">
-            <div className="flex justify-between items-center text-emerald-900">
-              <span className="font-mono font-black text-xs">100%</span>
-              <span className="text-[9px] font-bold tracking-widest uppercase">CME TREASURY</span>
-              <span className="font-mono font-black text-xs">₮</span>
+        {/* Institutional Side Panel: Liquidity Reserve (Top Right) */}
+        <div className="absolute top-20 right-6 lg:right-12 opacity-85 hidden xl:block animate-float-gentle pointer-events-none" style={{ animationDelay: '1.8s' }}>
+          <div className="w-54 rounded-2xl bg-white/85 backdrop-blur-md border border-slate-200/90 p-3.5 shadow-sm space-y-2">
+            <div className="flex items-center justify-between text-[10px] font-mono">
+              <span className="text-slate-500 font-semibold uppercase tracking-wider text-[9.5px]">Liquidity Vault</span>
+              <span className="px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold text-[9px]">100% Backed</span>
             </div>
-            <div className="flex items-center justify-center">
-              <div className="w-9 h-9 rounded-full border border-[#008B47] bg-emerald-100/70 flex items-center justify-center text-[#008B47] font-bold text-xs font-mono">
-                ₮
-              </div>
+            <div className="text-sm font-black text-slate-900 font-mono">
+              $842,500,000
             </div>
-            <div className="flex justify-between items-center text-[8px] font-mono text-emerald-800 font-semibold">
-              <span>INSTITUTIONAL</span>
-              <span>100% ASSET BACKED</span>
+            <div className="flex items-center justify-between text-[9.5px] text-slate-500 font-mono">
+              <span>Tier-1 Settlement</span>
+              <span className="text-emerald-600 font-bold">A+ Certified</span>
             </div>
           </div>
         </div>
 
-        {/* Floating Coin Badges */}
-        <div className="absolute top-[28%] left-[2%] lg:left-[5%] animate-float-fast opacity-35">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-100 via-emerald-300 to-[#008B47] border-2 border-white shadow-md flex items-center justify-center text-white font-black text-xl font-serif rotate-[-12deg]">
-            $
-          </div>
-        </div>
-
-        <div className="absolute bottom-[28%] left-[4%] lg:left-[7%] animate-float-slow opacity-35">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-100 via-emerald-300 to-[#008B47] border-2 border-white shadow-md flex items-center justify-center text-white font-black text-lg font-mono rotate-[15deg]">
-            ₿
-          </div>
-        </div>
-
-        <div className="absolute top-[16%] right-[4%] lg:right-[7%] animate-float-slow opacity-35">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-100 via-yellow-300 to-[#80D824] border-2 border-white shadow-md flex items-center justify-center text-emerald-950 font-black text-lg font-sans rotate-[8deg]">
-            €
-          </div>
-        </div>
-
-        {/* Floating Candlestick Chart Cluster (Left) */}
-        <div className="absolute top-[48%] left-[3%] lg:left-[6%] opacity-25 hidden md:flex items-end gap-2 animate-drift-up">
-          <div className="flex flex-col items-center">
-            <div className="w-0.5 h-3 bg-[#008B47]"></div>
-            <div className="w-3.5 h-8 bg-[#008B47] rounded-xs"></div>
-            <div className="w-0.5 h-2 bg-[#008B47]"></div>
-          </div>
-          <div className="flex flex-col items-center">
-            <div className="w-0.5 h-2 bg-[#008B47]"></div>
-            <div className="w-3.5 h-12 bg-[#00A653] rounded-xs"></div>
-            <div className="w-0.5 h-4 bg-[#008B47]"></div>
-          </div>
-          <div className="flex flex-col items-center">
-            <div className="w-0.5 h-4 bg-[#008B47]"></div>
-            <div className="w-3.5 h-16 bg-[#80D824] rounded-xs"></div>
-            <div className="w-0.5 h-3 bg-[#008B47]"></div>
-          </div>
-        </div>
-
-        {/* Floating Profit Badges (Right) */}
-        <div className="absolute top-[44%] right-[3%] lg:right-[6%] opacity-40 hidden md:block animate-drift-up">
-          <div className="space-y-2">
-            <div className="px-3 py-1.5 rounded-xl bg-white/90 border border-emerald-300 text-emerald-800 font-mono text-xs font-black shadow-sm flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#008B47] animate-pulse"></span>
-              CME ARBITRAGE ACTIVE
+        {/* Security & Regulatory Badge (Bottom Left) */}
+        <div className="absolute bottom-12 left-6 lg:left-12 opacity-80 hidden xl:block pointer-events-none">
+          <div className="w-50 rounded-2xl bg-white/85 backdrop-blur-md border border-slate-200/90 p-3 shadow-sm space-y-1.5">
+            <div className="flex items-center gap-1.5 text-[10px] font-mono font-bold text-slate-700">
+              <Shield size={12} className="text-[#008B47]" />
+              <span>AES-256 GCM SECURED</span>
             </div>
-            <div className="px-3 py-1.5 rounded-xl bg-emerald-50/90 border border-emerald-300 text-emerald-800 font-mono text-xs font-black shadow-sm flex items-center gap-1.5">
-              <span>⚡</span>
-              INSTANT SETTLEMENT
+            <p className="text-[10px] text-slate-500 leading-tight">
+              Institutional multi-signature vault &amp; segregated client fund protection.
+            </p>
+          </div>
+        </div>
+
+        {/* Copy Trading Activity Indicator (Bottom Right) */}
+        <div className="absolute bottom-12 right-6 lg:right-12 opacity-80 hidden xl:block pointer-events-none">
+          <div className="w-50 rounded-2xl bg-white/85 backdrop-blur-md border border-slate-200/90 p-3 shadow-sm space-y-1.5">
+            <div className="flex items-center justify-between text-[10px] font-mono font-bold text-slate-700">
+              <span className="flex items-center gap-1.5">
+                <Activity size={12} className="text-emerald-600" />
+                <span>COPY DESK</span>
+              </span>
+              <span className="text-emerald-600">94.8% WIN</span>
             </div>
+            <p className="text-[10px] text-slate-500 leading-tight">
+              Real-time mirrored execution across verified master traders.
+            </p>
           </div>
         </div>
       </div>
@@ -900,6 +948,51 @@ export default function AuthPage({ onSuccess, path, navigate }: AuthPageProps) {
                     </button>
                   </div>
 
+                  {/* Resend Sandbox Notice (if active) */}
+                  {isResendSandbox && (
+                    <div className="p-3 bg-amber-50/90 border border-amber-200 rounded-2xl text-left space-y-2">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                        <div className="text-xs text-amber-900 leading-relaxed">
+                          <p className="font-bold">Resend Sandbox Active (<code className="font-mono text-[10px] bg-amber-100 px-1 py-0.5 rounded">onboarding@resend.dev</code>)</p>
+                          <p className="text-[11px] text-amber-800 mt-0.5">
+                            Resend test domain only delivers to the Resend account owner's email. To deliver to external users, verify your domain in Resend.
+                          </p>
+                        </div>
+                      </div>
+                      {otpPreviewCode && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOtpDigits(otpPreviewCode.split(''));
+                            otpInputRefs.current[5]?.focus();
+                          }}
+                          className="w-full py-1.5 px-3 bg-amber-600 text-white rounded-xl text-xs font-bold hover:bg-amber-700 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                        >
+                          <Zap size={13} />
+                          Auto-fill Verification Passcode ({otpPreviewCode})
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Quick autofill pill if previewCode is available and sandbox notice wasn't already triggered */}
+                  {!isResendSandbox && otpPreviewCode && (
+                    <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOtpDigits(otpPreviewCode.split(''));
+                          otpInputRefs.current[5]?.focus();
+                        }}
+                        className="text-xs font-bold text-[#007038] hover:underline inline-flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Sparkles size={13} className="text-[#008B47]" />
+                        <span>Quick Auto-fill Passcode: <strong>{otpPreviewCode}</strong></span>
+                      </button>
+                    </div>
+                  )}
+
                   <form onSubmit={handleFinalSignUpWithOtp} className="space-y-4">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-zinc-400 uppercase tracking-wider block text-center">
@@ -923,6 +1016,52 @@ export default function AuthPage({ onSuccess, path, navigate }: AuthPageProps) {
                             className="w-10 sm:w-11 h-12 text-center text-lg font-bold font-mono bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#008B47] focus:border-[#008B47] text-zinc-900 shadow-xs transition-all"
                           />
                         ))}
+                      </div>
+                    </div>
+
+                    {/* Email Deliverability & Spam Help Card */}
+                    <div className="p-3 bg-zinc-50 border border-zinc-200/80 rounded-2xl text-[11px] text-zinc-600 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-zinc-700 flex items-center gap-1.5">
+                          <Mail size={13} className="text-[#008B47]" /> Didn't receive the email?
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowDeliveryTips(!showDeliveryTips)}
+                          className="text-[10.5px] text-[#008B47] hover:underline font-semibold cursor-pointer"
+                        >
+                          {showDeliveryTips ? 'Hide Tips' : 'View Tips'}
+                        </button>
+                      </div>
+
+                      {showDeliveryTips && (
+                        <ul className="list-disc list-inside space-y-1 text-zinc-500 text-[10.5px] pt-1 border-t border-zinc-200/60">
+                          <li>Check your <strong>Spam / Junk</strong> or <strong>Promotions</strong> folder.</li>
+                          <li>Ensure there are no typos in <span className="font-semibold text-zinc-700">{email}</span>.</li>
+                        </ul>
+                      )}
+
+                      <div className="pt-1 flex items-center justify-between">
+                        <span className="text-[10.5px] text-zinc-500">Email filtered or delayed?</span>
+                        <button
+                          id="auth-auto-retrieve-btn"
+                          type="button"
+                          disabled={isRetrievingOtp}
+                          onClick={handleAutoRetrieveCode}
+                          className="text-[11px] font-bold text-[#008B47] hover:text-[#007038] hover:underline inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                        >
+                          {isRetrievingOtp ? (
+                            <>
+                              <RefreshCw size={11} className="animate-spin" />
+                              <span>Retrieving...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Zap size={11} />
+                              <span>Auto-Retrieve Code</span>
+                            </>
+                          )}
+                        </button>
                       </div>
                     </div>
 
@@ -1392,23 +1531,23 @@ export default function AuthPage({ onSuccess, path, navigate }: AuthPageProps) {
               e.preventDefault();
             }
           }}
-          className="relative flex items-center justify-center w-13 h-13 rounded-full bg-gradient-to-tr from-[#008B47] via-[#00A653] to-[#80D824] text-white shadow-xl shadow-emerald-700/35 border-2 border-white focus:outline-none group active:shadow-inner cursor-pointer"
-          title="24/7 CME Support"
+          className="relative flex items-center justify-center w-13 h-13 rounded-full bg-gradient-to-tr from-amber-500 via-amber-400 to-amber-300 text-zinc-950 shadow-xl shadow-amber-500/40 border-2 border-white focus:outline-none group active:shadow-inner cursor-pointer"
+          title="24/7 Support (@Morexsuppor)"
           aria-label="Open 24/7 Customer Support"
         >
           {/* Live Online Status Dot */}
           <span className="absolute top-0 right-0 flex h-3.5 w-3.5 -mt-0.5 -mr-0.5 pointer-events-none">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F4E100] opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-[#F4E100] border-2 border-white"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white"></span>
           </span>
 
-          {/* Support Headset Icon */}
-          <Headphones size={22} className="text-white group-hover:scale-110 transition-transform" />
+          {/* Support LifeBuoy Icon */}
+          <LifeBuoy size={22} className="text-zinc-950 group-hover:rotate-45 transition-transform duration-300" />
 
           {/* Tooltip on Desktop Hover */}
           <div className="absolute right-full mr-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-zinc-900/90 backdrop-blur-sm text-white text-[11px] font-bold rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-md hidden sm:flex items-center gap-1.5 border border-zinc-800">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#F4E100]"></span>
-            <span>24/7 CME Support</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span>24/7 Support (@Morexsuppor)</span>
           </div>
         </a>
       </motion.div>
