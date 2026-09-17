@@ -859,7 +859,7 @@ export default function ProfileView({ user, onBack, onNavigate }: ProfileViewPro
                       Online 24/7
                     </span>
                   </div>
-                  <p className="text-[11px] text-zinc-500 truncate mt-0.5 font-sans">Direct Telegram assistance (@Morexsuppor)</p>
+                  <p className="text-[11px] text-zinc-500 truncate mt-0.5 font-sans">Direct Telegram assistance (@Wendyus1)</p>
                 </div>
                 <ChevronRight size={15} className="text-zinc-400 group-hover:text-zinc-700 transition-colors shrink-0" />
               </button>
@@ -1982,7 +1982,7 @@ export default function ProfileView({ user, onBack, onNavigate }: ProfileViewPro
             <div className="space-y-3">
               <a
                 id="telegram-official-support-link"
-                href="https://t.me/Morexsuppor"
+                href="https://t.me/Wendyus1"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-4 bg-white hover:bg-zinc-50 border border-zinc-200/80 hover:border-emerald-300 p-4 sm:p-5 rounded-2xl transition-all group cursor-pointer no-underline block shadow-xs"
@@ -1994,7 +1994,7 @@ export default function ProfileView({ user, onBack, onNavigate }: ProfileViewPro
                   <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="text-sm font-bold text-zinc-900 group-hover:text-zinc-950 transition-colors">Direct Telegram Support Desk</h4>
                     <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 border border-sky-200">
-                      @Morexsuppor
+                      @Wendyus1
                     </span>
                   </div>
                   <p className="text-xs text-zinc-500 mt-0.5">Encrypted private messaging with CME verified desk operators</p>

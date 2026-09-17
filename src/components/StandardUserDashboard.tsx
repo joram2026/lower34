@@ -4337,62 +4337,6 @@ export default function StandardUserDashboard({
                       );
                     })()}
 
-                    {/* Dynamic Return Calculation Preview Bento */}
-                    {(() => {
-                      const activeSig = getActiveSignalForLead(selectedLeadForCopy);
-                      const isExtra = Boolean(activeSig?.isExtra) || (selectedLeadForCopy.extraSignals || []).some(es => (es.code || '').toUpperCase() === copySignalCodeInput.trim().toUpperCase());
-                      
-                      const existingActiveContract = userCopyTrades.find(
-                        t => (t.leadId === selectedLeadForCopy.id || t.leadName === selectedLeadForCopy.name) && t.status === 'ACTIVE'
-                      );
-                      const lockedPrincipalCapital = existingActiveContract?.contractCapital || existingActiveContract?.amount || parseFloat(copyTradeAmountInput) || (selectedLeadForCopy.minCapital ?? 50);
-                      const tradeCap = isExtra ? lockedPrincipalCapital : (parseFloat(copyTradeAmountInput) || 0);
-
-                      let rate = 0;
-                      if (isExtra) {
-                        const matchedExtra = (selectedLeadForCopy.extraSignals || []).find(es => (es.code || '').toUpperCase() === copySignalCodeInput.trim().toUpperCase()) || activeSig;
-                        rate = matchedExtra?.profitRate ?? 3.5;
-                      } else {
-                        const numSigs = selectedLeadForCopy.signals?.length || 1;
-                        const dayRate = selectedLeadForCopy.dayProfitRate ?? 2.0;
-                        rate = dayRate / numSigs;
-                      }
-
-                      const gross = tradeCap * (rate / 100);
-                      const comm = gross * ((selectedLeadForCopy.analysisCommission ?? 10) / 100);
-                      const net = gross - comm;
-
-                      return (
-                        <div className={`p-3 rounded-xl border grid grid-cols-3 gap-2 text-center text-xs ${
-                          isLightTheme ? 'bg-zinc-50/90 border-zinc-200' : 'bg-white/[0.02] border-white/[0.06]'
-                        }`}>
-                          <div>
-                            <span className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400 block font-mono">
-                              Trade Capital
-                            </span>
-                            <span className={`text-xs font-bold font-mono mt-0.5 block truncate ${isLightTheme ? 'text-zinc-900' : 'text-white'}`}>
-                              ${tradeCap.toFixed(2)}
-                            </span>
-                          </div>
-                          <div className="border-x border-zinc-200 dark:border-white/10 px-1">
-                            <span className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400 block font-mono">
-                              Signal Rate
-                            </span>
-                            <span className="text-xs font-bold font-mono text-emerald-500 mt-0.5 block truncate">
-                              +{rate.toFixed(2)}%
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-[9.5px] font-bold uppercase tracking-wider text-zinc-400 block font-mono">
-                              Est. Net Profit
-                            </span>
-                            <span className="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5 block truncate">
-                              +${net.toFixed(2)}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })()}
 
                     {/* Signal Code Input Section */}
                     <div className="space-y-1.5">
@@ -5640,7 +5584,7 @@ export default function StandardUserDashboard({
         >
           <a
             id="floating-support-telegram-btn"
-            href="https://t.me/Morexsuppor"
+            href="https://t.me/Wendyus1"
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => {
@@ -5649,7 +5593,7 @@ export default function StandardUserDashboard({
               }
             }}
             className="relative flex items-center justify-center w-13 h-13 rounded-full bg-gradient-to-tr from-amber-500 via-amber-400 to-amber-300 text-zinc-950 shadow-xl shadow-amber-500/40 border-2 border-white focus:outline-none group active:shadow-inner"
-            title="24/7 Support (@Morexsuppor)"
+            title="24/7 Support (@Wendyus1)"
             aria-label="Open 24/7 Customer Support"
           >
             {/* Live Online Status Dot */}
@@ -5664,7 +5608,7 @@ export default function StandardUserDashboard({
             {/* Tooltip on Desktop Hover */}
             <div className="absolute right-full mr-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-zinc-900/90 backdrop-blur-sm text-white text-[11px] font-bold rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-md hidden sm:flex items-center gap-1.5 border border-zinc-800">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-              <span>Customer Support</span>
+              <span>24/7 Support (@Wendyus1)</span>
             </div>
           </a>
         </motion.div>

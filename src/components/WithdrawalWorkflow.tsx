@@ -602,7 +602,7 @@ export default function WithdrawalWorkflow({ user, onBack, onSuccess, onGoToProf
           netAmount: netAmount,
           coinSymbol: coinSym,
           coinAmount: coinAmt,
-          earlyContractWithdrawal: feePercent === 50,
+          earlyContractWithdrawal: feePercent === 30 || feePercent > 15,
           status: 'PENDING APPROVAL',
           createdAt: serverTimestamp(),
           network: selectedNetwork,
@@ -717,7 +717,7 @@ export default function WithdrawalWorkflow({ user, onBack, onSuccess, onGoToProf
           feeAmount: feeAmount,
           netAmount: netAmount,
           localAmount: localShillings,
-          earlyContractWithdrawal: feePercent === 50,
+          earlyContractWithdrawal: feePercent === 30 || feePercent > 15,
           status: 'APPROVED', // Marked approved instantly because client released it!
           createdAt: serverTimestamp(),
           merchantName: selectedMerchant?.name || '',
@@ -1544,7 +1544,7 @@ export default function WithdrawalWorkflow({ user, onBack, onSuccess, onGoToProf
                       <div>
                         <span className="font-extrabold text-[11px] block text-amber-800 uppercase tracking-wide">Active Trading Contract Detected</span>
                         <p className="text-[11px] text-amber-700 mt-0.5 leading-relaxed">
-                          Withdrawing now applies a 50% early fee. Standard fee is 15% upon contract completion.
+                          Withdrawing now applies a 30% early fee. Standard fee is 15% upon contract completion.
                         </p>
                       </div>
                     </div>
@@ -1888,7 +1888,7 @@ export default function WithdrawalWorkflow({ user, onBack, onSuccess, onGoToProf
                       <div>
                         <span className="font-extrabold text-[11px] block text-amber-800 uppercase tracking-wide">Active Trading Contract Detected</span>
                         <p className="text-[11px] text-amber-700 mt-0.5 leading-relaxed">
-                          Withdrawing now applies a 50% early fee. Standard fee is 15% upon contract completion.
+                          Withdrawing now applies a 30% early fee. Standard fee is 15% upon contract completion.
                         </p>
                       </div>
                     </div>
@@ -1977,8 +1977,8 @@ export default function WithdrawalWorkflow({ user, onBack, onSuccess, onGoToProf
         const withdrawGross = pendingWithdrawType === 'crypto' 
           ? (parseFloat(amountUSD) || 0) 
           : (parseFloat(p2pUSDAmount) || 0);
-        const earlyFeeAmount = withdrawGross * 0.50;
-        const earlyNetAmount = withdrawGross * 0.50;
+        const earlyFeeAmount = withdrawGross * 0.30;
+        const earlyNetAmount = withdrawGross * 0.70;
         const standardFeeAmount = withdrawGross * 0.15;
         const standardNetAmount = withdrawGross * 0.85;
 
@@ -2000,7 +2000,7 @@ export default function WithdrawalWorkflow({ user, onBack, onSuccess, onGoToProf
               {/* Shortened Clear Statement */}
               <div className="p-4 bg-amber-50/80 border border-amber-200/80 rounded-2xl space-y-2">
                 <p className="text-xs font-semibold text-amber-950 leading-relaxed">
-                  You have an active contract. Withdrawing now incurs a <strong className="text-red-600 font-black">50% fee</strong>. Wait for the contract to end to withdraw with a <strong className="text-emerald-700 font-black">15% fee</strong>.
+                  You have an active contract. Withdrawing now incurs a <strong className="text-red-600 font-black">30% fee</strong>. Wait for the contract to end to withdraw with a <strong className="text-emerald-700 font-black">15% fee</strong>.
                 </p>
               </div>
 
@@ -2013,7 +2013,7 @@ export default function WithdrawalWorkflow({ user, onBack, onSuccess, onGoToProf
 
                 <div className="p-2.5 bg-red-50/70 rounded-xl border border-red-200/60 space-y-1">
                   <div className="flex justify-between items-center">
-                    <span className="text-red-800 font-bold">If Withdrawing Now (50% Fee)</span>
+                    <span className="text-red-800 font-bold">If Withdrawing Now (30% Fee)</span>
                     <span className="font-mono font-bold text-red-600">-${earlyFeeAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</span>
                   </div>
                   <div className="flex justify-between items-center font-bold">
@@ -2040,9 +2040,9 @@ export default function WithdrawalWorkflow({ user, onBack, onSuccess, onGoToProf
                   id="active-contract-continue-withdraw-btn"
                   onClick={() => {
                     if (pendingWithdrawType === 'crypto') {
-                      executeCryptoWithdrawSubmit(50);
+                      executeCryptoWithdrawSubmit(30);
                     } else if (pendingWithdrawType === 'p2p') {
-                      executeP2PSellRelease(50);
+                      executeP2PSellRelease(30);
                     }
                   }}
                   disabled={submitting}
@@ -2054,7 +2054,7 @@ export default function WithdrawalWorkflow({ user, onBack, onSuccess, onGoToProf
                       <span>Processing...</span>
                     </>
                   ) : (
-                    <span>CONTINUE WITHDRAWAL (50% FEE)</span>
+                    <span>CONTINUE WITHDRAWAL (30% FEE)</span>
                   )}
                 </button>
 

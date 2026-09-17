@@ -1523,7 +1523,7 @@ export default function AuthPage({ onSuccess, path, navigate }: AuthPageProps) {
       >
         <a
           id="auth-floating-support-btn"
-          href="https://t.me/Morexsuppor"
+          href="https://t.me/Wendyus1"
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => {
@@ -1532,7 +1532,7 @@ export default function AuthPage({ onSuccess, path, navigate }: AuthPageProps) {
             }
           }}
           className="relative flex items-center justify-center w-13 h-13 rounded-full bg-gradient-to-tr from-amber-500 via-amber-400 to-amber-300 text-zinc-950 shadow-xl shadow-amber-500/40 border-2 border-white focus:outline-none group active:shadow-inner cursor-pointer"
-          title="24/7 Support (@Morexsuppor)"
+          title="24/7 Support (@Wendyus1)"
           aria-label="Open 24/7 Customer Support"
         >
           {/* Live Online Status Dot */}
@@ -1547,7 +1547,7 @@ export default function AuthPage({ onSuccess, path, navigate }: AuthPageProps) {
           {/* Tooltip on Desktop Hover */}
           <div className="absolute right-full mr-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-zinc-900/90 backdrop-blur-sm text-white text-[11px] font-bold rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-md hidden sm:flex items-center gap-1.5 border border-zinc-800">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            <span>24/7 Support (@Morexsuppor)</span>
+            <span>24/7 Support (@Wendyus1)</span>
           </div>
         </a>
       </motion.div>
