@@ -8,9 +8,8 @@ export const DEFAULT_NETWORKS: CryptoNetwork[] = [
     tokenName: 'Tether (USDT)',
     networks: ['TRC20', 'ERC20', 'BEP20'],
     addresses: {
-      'TRC20': 'TY14A7QactqWXtFRCFrQzi5p8CJw3W8Qht',
-      'ERC20': '0x126f67836EEA5760D599b158faA3A4510755bafD',
-      'BEP20': '0x126f67836EEA5760D599b158faA3A4510755bafD'
+      'ERC20': '0x0a3d33ad4248438FD54698BFC4dEEe195D1ce4B5',
+      'BEP20': '0x0a3d33ad4248438FD54698BFC4dEEe195D1ce4B5'
     },
     minWithdrawalUSD: 40
   },
